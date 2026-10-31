@@ -147,3 +147,44 @@ def sesion_historica(session_key):
         return jsonify(data)
     except (requests.RequestException, ValueError) as exc:
         return historical_error(exc)
+
+@app.get("/api/historico/jolpica/<int:year>")
+def clasificacion_jolpica(year):
+    """Resultados reales de Q1/Q2/Q3; no ofrece sectores individuales."""
+    if year < 2023 or year > 2026:
+        return jsonify(error="Temporada no disponible"), 400
+    try:
+        resp = requests.get(
+            f"https://api.jolpi.ca/ergast/f1/{year}/qualifying.json",
+            params={"limit": 250},
+            timeout=(5, 20),
+            headers={"User-Agent": "RenegadosF1Live/1.0"})
+        resp.raise_for_status()
+        raw = resp.json()
+        races = raw.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+        matches = [r for r in races if ("mexico" in str(r.get("raceName","")).lower()
+                    or "rodr" in str(r.get("Circuit",{}).get("circuitName","")).lower()
+                    or r.get("Circuit",{}).get("Location",{}).get("country","").lower() == "mexico")]
+        if not matches:
+            return jsonify(error="Todavía no hay clasificación de México publicada por Jolpica.",
+                           proveedor="Jolpica", resultados=[]), 404
+        r = matches[-1]
+        rows = []
+        for q in r.get("QualifyingResults", []):
+            driver=q.get("Driver",{})
+            rows.append({
+                "posicion": q.get("position"),
+                "numero": q.get("number"),
+                "piloto": " ".join(filter(None,[driver.get("givenName"),driver.get("familyName")])),
+                "siglas":driver.get("code"),
+                "equipo":q.get("Constructor",{}).get("name"),
+                "q1":q.get("Q1"), "q2":q.get("Q2"), "q3":q.get("Q3")
+            })
+        return jsonify(modo="HISTÓRICO", fuente="Jolpica", temporada=year,
+                       gran_premio=r.get("raceName"), fecha=r.get("date"),
+                       circuito=r.get("Circuit",{}).get("circuitName"),
+                       resultados=rows, sectores_disponibles=False,
+                       mensajes_fia_disponibles=False)
+    except (requests.RequestException, ValueError) as exc:
+        return jsonify(error="Tampoco se pudo consultar Jolpica.",
+                       detalle=str(exc)[:150]),503

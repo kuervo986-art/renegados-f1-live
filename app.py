@@ -188,3 +188,32 @@ def clasificacion_jolpica(year):
     except (requests.RequestException, ValueError) as exc:
         return jsonify(error="Tampoco se pudo consultar Jolpica.",
                        detalle=str(exc)[:150]),503
+
+@app.get("/api/historico/mapa/<int:session_key>")
+def mapa_historico(session_key):
+    """Reconstruye la línea central desde posiciones GPS de una vuelta real."""
+    try:
+        sessions=historical("sessions",{"session_key":session_key})
+        if not sessions:
+            return jsonify(error="Sesión no encontrada"),404
+        laps=historical("laps",{"session_key":session_key})
+        candidate=next((l for l in laps if l.get("date_start") and l.get("lap_duration") and
+                        65 < l["lap_duration"] < 180 and not l.get("is_pit_out_lap")),None)
+        if not candidate:
+            return jsonify(error="No hay una vuelta con coordenadas utilizables"),404
+        from datetime import timedelta
+        start=datetime.fromisoformat(candidate["date_start"].replace("Z","+00:00"))
+        end=start+timedelta(seconds=float(candidate["lap_duration"]))
+        params={"session_key":session_key,"driver_number":candidate["driver_number"],
+                "date>=":start.isoformat(),"date<=":end.isoformat()}
+        points=historical("location",params)
+        coords=[{"x":p["x"],"y":p["y"],"fecha":p.get("date")}
+                for p in points if isinstance(p.get("x"),(float,int)) and isinstance(p.get("y"),(float,int))]
+        if len(coords)<30:
+            return jsonify(error="OpenF1 no ha devuelto suficientes coordenadas GPS."),404
+        step=max(1,len(coords)//450)
+        return jsonify(session_key=session_key,driver_number=candidate["driver_number"],
+                       modo="RECORRIDO GPS HISTÓRICO",coordenadas=coords[::step],
+                       nota="Trazado reconstruido con GPS histórico de una vuelta, no posiciones actuales de los coches.")
+    except (requests.RequestException,ValueError,KeyError,TypeError) as exc:
+        return historical_error(exc)

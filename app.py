@@ -103,10 +103,10 @@ def sesiones_historicas():
         year = int(request.args.get("year", 2026))
         if year < 2023 or year > 2026:
             return jsonify(error="Temporada fuera del intervalo admitido"), 400
-        country = request.args.get("country", "Mexico")
+        country = request.args.get("country", "").strip()
         items = historical("sessions", {"year": year})
         return jsonify([s for s in items if s.get("session_name") in ("Qualifying", "Sprint Qualifying") and (
-            country.lower() in str(s.get("country_name", "")).lower()
+            not country or country.lower() in str(s.get("country_name", "")).lower()
             or country.lower() in str(s.get("location", "")).lower())])
     except (ValueError, requests.RequestException) as exc:
         return historical_error(exc)

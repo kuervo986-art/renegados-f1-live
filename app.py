@@ -67,3 +67,83 @@ def proveedor(topic):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
+
+
+# Archivo de sesiones históricas: OpenF1, sin autenticación.
+from flask import request
+
+_history_cache = {}
+def historical(endpoint, params):
+    key = (endpoint, tuple(sorted(params.items())))
+    current = time.monotonic()
+    with _lock:
+        cached = _history_cache.get(key)
+        if cached and current - cached[0] < 900:
+            return cached[1]
+    resp = requests.get("https://api.openf1.org/v1/" + endpoint,
+                        params=params, timeout=(5, 20),
+                        headers={"User-Agent": "RenegadosF1Live/1.0"})
+    resp.raise_for_status()
+    result = resp.json()
+    if not isinstance(result, list):
+        raise ValueError("Respuesta histórica inválida")
+    with _lock:
+        _history_cache[key] = (time.monotonic(), result)
+    return result
+
+def historical_error(exc):
+    response = getattr(exc, "response", None)
+    status = response.status_code if response is not None else None
+    return jsonify(error="No se pudieron obtener los datos históricos de OpenF1.",
+                   codigo_proveedor=status, detalle=str(exc)[:160]), 503
+
+@app.get("/api/historico/sesiones")
+def sesiones_historicas():
+    try:
+        year = int(request.args.get("year", 2026))
+        if year < 2023 or year > 2026:
+            return jsonify(error="Temporada fuera del intervalo admitido"), 400
+        country = request.args.get("country", "Mexico")
+        items = historical("sessions", {"year": year})
+        return jsonify([s for s in items if s.get("session_name") in ("Qualifying", "Sprint Qualifying") and (
+            country.lower() in str(s.get("country_name", "")).lower()
+            or country.lower() in str(s.get("location", "")).lower())])
+    except (ValueError, requests.RequestException) as exc:
+        return historical_error(exc)
+
+@app.get("/api/historico/sesion/<int:session_key>")
+def sesion_historica(session_key):
+    try:
+        sessions = historical("sessions", {"session_key": session_key})
+        if not sessions:
+            return jsonify(error="Sesión inexistente"), 404
+        session = sessions[0]
+        end = session.get("date_end")
+        from datetime import timedelta
+        if not end:
+            return jsonify(error="La sesión no tiene una fecha final válida"), 409
+        try:
+            ended = datetime.fromisoformat(end.replace("Z", "+00:00"))
+            if ended.tzinfo is None:
+                ended = ended.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return jsonify(error="Fecha de fin de sesión inválida"), 409
+        if datetime.now(timezone.utc) < ended + timedelta(minutes=30):
+            return jsonify(error="Sesión todavía en ventana restringida; inténtalo tras su cierre"), 403
+        keys = ("drivers", "session_result", "laps", "stints", "race_control")
+        data = {"sesion": session}
+        errors = {}
+        for endpoint in keys:
+            try:
+                data[endpoint] = historical(endpoint, {"session_key": session_key})
+            except (requests.RequestException, ValueError) as exc:
+                data[endpoint] = []
+                errors[endpoint] = str(exc)[:130]
+        if not data["drivers"] or (not data["laps"] and not data["session_result"]):
+            return jsonify(error="OpenF1 no ha entregado pilotos o tiempos históricos.",
+                           errores=errors), 503
+        data["errores_parciales"] = errors
+        data["modo"] = "HISTÓRICO — NO EN DIRECTO"
+        return jsonify(data)
+    except (requests.RequestException, ValueError) as exc:
+        return historical_error(exc)

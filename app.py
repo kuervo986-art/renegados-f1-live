@@ -105,7 +105,7 @@ def sesiones_historicas():
             return jsonify(error="Temporada fuera del intervalo admitido"), 400
         country = request.args.get("country", "").strip()
         items = historical("sessions", {"year": year})
-        return jsonify([s for s in items if s.get("session_name") in ("Qualifying", "Sprint Qualifying") and (
+        return jsonify([s for s in items if s.get("session_name") in ("Qualifying", "Sprint Qualifying", "Race", "Sprint") and (
             not country or country.lower() in str(s.get("country_name", "")).lower()
             or country.lower() in str(s.get("location", "")).lower())])
     except (ValueError, requests.RequestException) as exc:

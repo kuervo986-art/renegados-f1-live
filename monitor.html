@@ -12,7 +12,49 @@ const BASE="https://renegados-f1-live.onrender.com", el=id=>document.getElementB
 function esc(s){return String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 async function api(path){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000);try{let r=await fetch(BASE+path,{signal:controller.signal}),d=await r.json();if(!r.ok)throw Error(d.error||"Error "+r.status);return d}finally{clearTimeout(timeout)}}
 function t(n){return typeof n==="number"?Math.floor(n/60)+":"+String((n%60).toFixed(3)).padStart(6,"0"):"—"}
-function translate(s){s=String(s||"");let match=s.match(/^Car (\d+) \(([^)]+)\) TIME ([\d:.]+) DELETED - TRACK LIMITS AT TURN (\d+) LAP (\d+)(.*)$/i);if(match)return "Coche "+match[1]+" ("+match[2]+"): tiempo "+match[3]+" anulado por límites de pista en curva "+match[4]+", vuelta "+match[5]+(match[6]||"");for(let [a,b] of [[/^CLEAR IN TRACK SECTOR (\d+)/i,"Pista despejada en el sector $1"],[/^YELLOW IN TRACK SECTOR (\d+)/i,"Bandera amarilla en el sector $1"],[/^DOUBLE YELLOW IN TRACK SECTOR (\d+)/i,"Doble bandera amarilla en el sector $1"],[/^SESSION ABORTED$/i,"Sesión interrumpida"],[/^SESSION STARTED$/i,"Sesión iniciada"],[/^SESSION ENDED$/i,"Sesión finalizada"],[/^GREEN FLAG/i,"Bandera verde"],[/^RED FLAG/i,"Bandera roja"],[/^SAFETY CAR DEPLOYED/i,"Coche de seguridad en pista"],[/^DRS ENABLED/i,"DRS activado"],[/^DRS DISABLED/i,"DRS desactivado"]])s=s.replace(a,b);return s}
+function translate(s){
+s=String(s||"").trim();
+let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
+if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
+const rules=[
+[/^GREEN LIGHT\s*-\s*PIT EXIT OPEN$/i,"Semáforo verde: salida de boxes abierta"],
+[/^YELLOW IN PIT LANE$/i,"Bandera amarilla en el carril de boxes"],
+[/^PIT LANE CLEAR$/i,"Carril de boxes despejado"],
+[/^PIT EXIT CLOSED$/i,"Salida de boxes cerrada"],
+[/^PIT EXIT OPEN$/i,"Salida de boxes abierta"],
+[/^PIT ENTRY CLOSED$/i,"Entrada a boxes cerrada"],
+[/^PIT ENTRY OPEN$/i,"Entrada a boxes abierta"],
+[/^RISK OF RAIN FOR THE F1 RACE IS (\d+(?:\.\d+)?)%$/i,"Probabilidad de lluvia durante la carrera de F1: $1 %"],
+[/^OVERTAKE DISABLED$/i,"Adelantamientos desactivados"],
+[/^OVERTAKE ENABLED$/i,"Adelantamientos activados"],
+[/^DRS DISABLED$/i,"DRS desactivado"],
+[/^DRS ENABLED$/i,"DRS activado"],
+[/^DOUBLE YELLOW IN TRACK SECTOR (\d+)/i,"Doble bandera amarilla en el sector $1"],
+[/^YELLOW IN TRACK SECTOR (\d+)/i,"Bandera amarilla en el sector $1"],
+[/^CLEAR IN TRACK SECTOR (\d+)/i,"Pista despejada en el sector $1"],
+[/^GREEN IN TRACK SECTOR (\d+)/i,"Bandera verde en el sector $1"],
+[/^SESSION ABORTED$/i,"Sesión interrumpida"],
+[/^SESSION STARTED$/i,"Sesión iniciada"],
+[/^SESSION ENDED$/i,"Sesión finalizada"],
+[/^SESSION SUSPENDED$/i,"Sesión suspendida"],
+[/^SESSION RESUMED$/i,"Sesión reanudada"],
+[/^GREEN FLAG/i,"Bandera verde"],
+[/^RED FLAG/i,"Bandera roja"],
+[/^CHEQUERED FLAG/i,"Bandera a cuadros"],
+[/^VIRTUAL SAFETY CAR ENDING/i,"Finalizando coche de seguridad virtual"],
+[/^VIRTUAL SAFETY CAR DEPLOYED/i,"Coche de seguridad virtual activado"],
+[/^SAFETY CAR IN THIS LAP/i,"El coche de seguridad entra en boxes esta vuelta"],
+[/^SAFETY CAR DEPLOYED/i,"Coche de seguridad en pista"],
+[/^TRACK CLEAR$/i,"Pista despejada"],
+[/^NO FURTHER INVESTIGATION/i,"No se investigará más"],
+[/^NO FURTHER ACTION/i,"Sin más acciones"],
+[/^INCIDENT NOTED/i,"Incidente registrado"],
+[/^PIT LANE ENTRY CLOSED/i,"Entrada a boxes cerrada"],
+[/^PIT LANE ENTRY OPEN/i,"Entrada a boxes abierta"]
+];
+for(const [re,translation] of rules){if(re.test(s))return s.replace(re,translation)}
+return s;
+}
 function label(e){if(e.flag==="CLEAR")return "Estado de pista · Despejada";let c={Flag:"Bandera",SessionStatus:"Estado de la sesión",SafetyCar:"Coche de seguridad",Other:"Otros",Drs:"DRS"}[e.category]||e.category||"Aviso";let f={YELLOW:"Amarilla",GREEN:"Verde",RED:"Roja",DOUBLE_YELLOW:"Doble amarilla"}[e.flag]||e.flag||"";return c+(f?" · "+f:"")}
 function renderData(d){let drivers=d.drivers||[],laps=d.laps||[],stints=d.stints||[],results=d.session_result||[];let rows=drivers.map(driver=>{let l=laps.filter(x=>x.driver_number===driver.driver_number&&typeof x.lap_duration==="number"&&x.lap_duration>0&&!x.is_pit_out_lap).sort((a,b)=>a.lap_duration-b.lap_duration),r=results.find(x=>x.driver_number===driver.driver_number),tyre=stints.filter(x=>x.driver_number===driver.driver_number).sort((a,b)=>(b.stint_number||0)-(a.stint_number||0))[0];return{driver,best:l[0],r,tyre}}).sort((a,b)=>(a.r?.position??999)-(b.r?.position??999));let leader=rows[0]?.best?.lap_duration;let sessionType=el("session").selectedOptions[0]?.textContent||"";let isRace=/^(Carrera|Sprint) ·/.test(sessionType);
 el("timing").innerHTML=rows.map((x,i)=>'<tr><td>'+esc(x.r?.position??(i+1))+'</td><td><b>'+esc(x.driver.name_acronym)+'</b></td><td>'+esc(x.driver.team_name)+'</td><td>'+(isRace?(x.r?.gap_to_leader===0?"Líder":(x.r?.gap_to_leader??"—")):((typeof x.best?.lap_duration==="number"&&typeof leader==="number")?"+"+(x.best.lap_duration-leader).toFixed(3):"—"))+'</td><td>'+t(x.best?.lap_duration)+'</td><td>'+esc(x.best?.duration_sector_1)+'</td><td>'+esc(x.best?.duration_sector_2)+'</td><td>'+esc(x.best?.duration_sector_3)+'</td><td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia"})[x.tyre?.compound]||"—")+'</td></tr>').join("");

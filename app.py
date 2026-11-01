@@ -217,3 +217,51 @@ def mapa_historico(session_key):
                        nota="Trazado reconstruido con GPS histórico de una vuelta, no posiciones actuales de los coches.")
     except (requests.RequestException,ValueError,KeyError,TypeError) as exc:
         return historical_error(exc)
+
+
+# Receptor alternativo independiente. No se considera operativo hasta desplegarse
+# y devolver estado conectado con una marca temporal reciente.
+ALT_URL = os.environ.get("F1_ALTERNATIVE_URL", "").strip().rstrip("/")
+ALT_ROUTES = {"status":"status", "timing":"standings", "race-control":"race-control",
+              "weather":"weather", "drivers":"drivers", "team-radio":"radio"}
+
+@app.get("/api/alternativa/diagnostico")
+def alternativa_diagnostico():
+    if not ALT_URL:
+        return jsonify(configurada=False, conectada=False,
+                       mensaje="El receptor alternativo aún no está desplegado ni configurado."), 503
+    try:
+        data = requests.get(ALT_URL + "/api/status", timeout=(3,6)).json()
+        last = data.get("lastMessageAt")
+        dt = datetime.fromisoformat(str(last).replace("Z","+00:00")) if last else None
+        age = (datetime.now(timezone.utc)-dt).total_seconds() if dt else None
+        connected = data.get("isConnected") is True and data.get("status") == "CONNECTED"
+        verified = connected and age is not None and 0 <= age < 90
+        return jsonify(configurada=True, conectada=connected, vigente=bool(verified),
+                       antiguedad_segundos=round(age) if age is not None else None,
+                       ultimo_mensaje=last,
+                       mensaje="Receptor verificado" if verified else "Sin datos recientes confirmados")
+    except (requests.RequestException,ValueError,TypeError,KeyError) as exc:
+        return jsonify(configurada=True, conectada=False, vigente=False,
+                       mensaje="No se ha podido verificar el receptor alternativo."),503
+
+@app.get("/api/alternativa/<topic>")
+def alternativa_datos(topic):
+    if topic not in ALT_ROUTES:
+        return jsonify(error="Ruta no permitida"),404
+    if not ALT_URL:
+        return jsonify(error="Receptor alternativo sin configurar"),503
+    try:
+        health = requests.get(ALT_URL+"/api/status",timeout=(3,6))
+        health.raise_for_status()
+        state = health.json()
+        dt = datetime.fromisoformat(str(state.get("lastMessageAt")).replace("Z","+00:00"))
+        age = (datetime.now(timezone.utc)-dt).total_seconds()
+        if not (state.get("isConnected") is True and state.get("status") == "CONNECTED" and 0 <= age < 90):
+            return jsonify(error="Receptor sin transmisión reciente verificada",vigente=False),503
+        response=requests.get(ALT_URL+"/api/"+ALT_ROUTES[topic],timeout=(3,8))
+        response.raise_for_status()
+        return jsonify(fuente="f1-livetiming-api",vigente=True,recibido_utc=utc(),
+                       datos=response.json())
+    except (requests.RequestException,ValueError,TypeError,KeyError):
+        return jsonify(error="El receptor alternativo ha fallado o sus datos no son válidos.",vigente=False),503

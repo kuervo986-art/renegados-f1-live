@@ -222,7 +222,7 @@ def mapa_historico(session_key):
 # Receptor alternativo independiente. No se considera operativo hasta desplegarse
 # y devolver estado conectado con una marca temporal reciente.
 ALT_URL = os.environ.get("F1_ALTERNATIVE_URL", "https://renegados-f1-receptor.onrender.com").strip().rstrip("/")
-ALT_ROUTES = {"status":"status", "timing":"standings", "race-control":"race-control",
+ALT_ROUTES = {"status":"status", "timing":"leaderboard", "race-control":"race-control",
               "weather":"weather", "drivers":"drivers", "team-radio":"radio"}
 
 @app.get("/api/alternativa/diagnostico")

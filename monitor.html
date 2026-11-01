@@ -70,28 +70,34 @@ el("state").textContent="Histórico recibido: "+rows.length+" pilotos · "+event
 function draw(points){let vals=points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));if(vals.length<30)throw Error("No hay suficientes coordenadas GPS");let xs=vals.map(p=>p.x),ys=vals.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),width=Math.max(1,maxX-minX),height=Math.max(1,maxY-minY),scale=Math.min(860/width,460/height),offsetX=(960-width*scale)/2,offsetY=(550-height*scale)/2;let path=vals.map((p,i)=>(i?"L":"M")+(offsetX+(p.x-minX)*scale).toFixed(2)+" "+(550-offsetY-(p.y-minY)*scale).toFixed(2)).join(" ");el("outline").setAttribute("d",path);el("track").setAttribute("d",path);el("placeholder").textContent=""}
 let availableSessions=[];
 let liveCircuitSessions=[], liveMapLoad=0;
-async function initLiveCircuit(){try{liveCircuitSessions=await api("/api/historico/sesiones?year=2026");const races=liveCircuitSessions.filter(s=>s.session_name==="Race");const items=races.length?races:liveCircuitSessions;const keys=[...new Set(items.map(circuitKey))];el("liveCircuit").innerHTML='<option value="">Selecciona un circuito</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join("");const mexico=keys.find(k=>/mexic/i.test(k));if(mexico)el("liveCircuit").value=mexico;else if(keys.length)el("liveCircuit").value=keys[keys.length-1];}catch(e){el("liveCircuit").innerHTML='<option value="">Circuitos no disponibles</option>';el("mapStatus").textContent="No se pudo obtener la lista de circuitos: "+e.message}}
-async function loadLiveCircuit(){
- const key=el("liveCircuit").value;
- if(!key){el("mapStatus").textContent="Selecciona primero un circuito.";return}
- const sessions=liveCircuitSessions.filter(s=>circuitKey(s)===key).sort((a,b)=>String(b.date_end||b.date_start).localeCompare(String(a.date_end||a.date_start)));
- const finished=sessions.filter(s=>s.date_end&&Date.parse(s.date_end)<Date.now()-3600000);
- const requestId=++liveMapLoad;
- el("mapStatus").textContent="Buscando trazado GPS histórico del circuito "+key+"…";
- el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="Buscando trazado histórico…";
- let lastError="No hay una sesión finalizada con datos GPS disponibles.";
- for(const session of finished){
-  try{
-   const map=await api("/api/historico/mapa/"+session.session_key);
-   if(requestId!==liveMapLoad||activeMode!=="live")return;
-   draw(map.coordenadas||[]);
-   el("mapStatus").textContent="Trazado histórico del circuito "+key+" ("+sessionLabel(session.session_name)+"). "+map.coordenadas.length+" coordenadas reales. No son posiciones actuales de los coches.";
-   return;
-  }catch(error){lastError=error.message}
+let circuitFeatures=[];
+async function initLiveCircuit(){
+ try{
+  const response=await fetch("./circuits.geojson?v=1",{cache:"force-cache"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  const geo=await response.json();
+  circuitFeatures=(geo.features||[]).filter(f=>f.geometry?.type==="LineString"&&Array.isArray(f.geometry.coordinates));
+  if(!circuitFeatures.length)throw Error("No hay trazados válidos");
+  el("liveCircuit").innerHTML='<option value="">Selecciona circuito</option>'+circuitFeatures.map((f,i)=>'<option value="'+i+'">'+esc(f.properties.name)+" · "+esc(f.properties.location)+'</option>').join("");
+  const mexico=circuitFeatures.findIndex(f=>/mexico city|hermanos rodr/i.test(f.properties.location+" "+f.properties.name));
+  if(mexico>=0)el("liveCircuit").value=String(mexico);
+  el("mapStatus").textContent="Trazados independientes cargados: "+circuitFeatures.length+". Selecciona un circuito. No representan posiciones actuales.";
+ }catch(error){
+  el("liveCircuit").innerHTML='<option value="">No se pudieron cargar los trazados</option>';
+  el("mapStatus").textContent="Error al abrir el archivo local de circuitos: "+error.message;
  }
- if(requestId!==liveMapLoad||activeMode!=="live")return;
- el("placeholder").textContent="GPS histórico no disponible";
- el("mapStatus").textContent="No se ha podido dibujar el trazado: "+lastError;
+}
+async function loadLiveCircuit(){
+ const n=Number(el("liveCircuit").value);
+ if(el("liveCircuit").value===""||!circuitFeatures[n]){el("mapStatus").textContent="Selecciona un circuito.";return}
+ const f=circuitFeatures[n],coords=f.geometry.coordinates;
+ const lat=coords.reduce((sum,p)=>sum+p[1],0)/coords.length;
+ const factor=Math.cos(lat*Math.PI/180);
+ const points=coords.map(p=>({x:p[0]*factor,y:p[1]}));
+ try{
+  draw(points);
+  el("mapStatus").textContent=f.properties.name+" · "+points.length+" puntos cartográficos del trazado (GeoJSON, no GPS de coches). Fuente: SergioSediq/f1-circuits. Sin posiciones en directo verificadas.";
+ }catch(error){el("mapStatus").textContent="No se pudo dibujar el circuito: "+error.message}
 }
 
 function circuitKey(s){return [s.country_name||"País desconocido",s.location||"Circuito"].join(" · ")}

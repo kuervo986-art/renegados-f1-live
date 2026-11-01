@@ -184,26 +184,27 @@ function translateTyre(d){
  const tyre={SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema",S:"Blando",M:"Medio",H:"Duro",I:"Intermedio",W:"Lluvia extrema"};
  return tyre[raw]||raw||"—";
 }
-function renderTrackLimits(messages,available){
+function renderTrackLimits(messages,available,drivers=[]){
  const info=el("limitsInfo"),target=el("limits");
- if(!available){info.textContent="No se han podido verificar los mensajes FIA. Recuento no disponible.";target.innerHTML='<tr><td colspan="4">Fuente FIA no disponible.</td></tr>';return}
+ if(!available){info.textContent="No se han podido recuperar los mensajes FIA; no es posible verificar los límites de pista.";target.innerHTML='<tr><td colspan="4">Datos no disponibles.</td></tr>';return}
  const tally=new Map(),seen=new Set();
+ const driverNames=new Map(drivers.map(d=>[String(d.RacingNumber),d.Tla||d.BroadcastName||("Coche "+d.RacingNumber)]));
  for(const m of messages){
   const message=String(m.Message||m.message||m.text||"").trim();
-  if(!/TRACK LIMITS|EXCEEDING TRACK LIMITS|EXCEEDING THE TRACK LIMITS|TRACK LIMIT/i.test(message))continue;
-  const number=(message.match(/\bCAR\s+(\d+)\b/i)||[])[1];
-  if(!number)continue;
-  const key=[m.Utc||m.timestamp||m.time||m.utc||"",message].join("|");
-  if(seen.has(key))continue;seen.add(key);
+  if(!/\bTRACK\s+LIMITS?\b|\bEXCEEDING\s+THE\s+TRACK\b/i.test(message))continue;
+  const number=String(m.RacingNumber||m.DriverNumber||m.driver_number||(message.match(/\bCARS?\s+(?:NUMBER\s+)?(\d+)\b/i)||[])[1]||"");
+  if(!/^\d+$/.test(number))continue;
+  const id=[m.Utc||m.timestamp||m.time||m.utc||"",message,number].join("|");
+  if(seen.has(id))continue;seen.add(id);
   const row=tally.get(number)||{number,notices:0,deleted:0,other:0};
-  if(/\bTIME\b.*\bDELETED\b|\bLAP TIME DELETED\b/i.test(message))row.deleted++;
-  else if(/\bNOTED\b|\bUNDER INVESTIGATION\b|\bWARNING\b|\bINFRINGEMENT\b|\bEXCEEDED\b|\bEXCEEDING\b/i.test(message))row.notices++;
+  if(/\bTIME\b.*\bDELETED\b|\bLAP\s+TIME\s+DELETED\b/i.test(message))row.deleted++;
+  else if(/\bWARNING\b|\bNOTED\b|\bUNDER INVESTIGATION\b|\bINFRINGEMENT\b/i.test(message))row.notices++;
   else row.other++;
   tally.set(number,row);
  }
- info.textContent="Conteo automático de mensajes FIA que mencionan límites de pista. Una vuelta anulada no cuenta además como aviso; las advertencias oficiales pueden tener un total diferente.";
- const rows=[...tally.values()].sort((a,b)=>(b.notices+b.deleted+b.other)-(a.notices+a.deleted+a.other));
- target.innerHTML=rows.length?rows.map(r=>'<tr><td>Coche '+esc(r.number)+'</td><td>'+r.notices+'</td><td>'+r.deleted+'</td><td>'+r.other+'</td></tr>').join(""):'<tr><td colspan="4">Sin incidencias de límites de pista identificadas en los mensajes recibidos.</td></tr>';
+ info.textContent="Se muestran "+tally.size+" pilotos con mensajes identificables sobre límites de pista. No es el contador oficial de infracciones: la FIA puede no publicar todas y algunos avisos no identifican al piloto.";
+ const rows=[...tally.values()].sort((x,y)=>(y.notices+y.deleted+y.other)-(x.notices+x.deleted+x.other));
+ target.innerHTML=rows.length?rows.map(r=>'<tr><td>'+esc(driverNames.get(r.number)||"Coche "+r.number)+'</td><td>'+r.notices+'</td><td>'+r.deleted+'</td><td>'+r.other+'</td></tr>').join(""):'<tr><td colspan="4">No hay mensajes individuales de límites de pista identificables en los avisos disponibles. No significa que no haya habido infracciones.</td></tr>';
 }
 function renderRadios(result){
  const box=el("radios");
@@ -267,7 +268,7 @@ async function refreshLive(){
  const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);
  const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
  const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
- renderTrackLimits(valid,fr.status==="fulfilled");
+ renderTrackLimits(valid,fr.status==="fulfilled",ds);
  el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
  }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}

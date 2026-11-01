@@ -94,6 +94,7 @@ function changeMode(mode){
  if(live){initLiveCircuit().then(()=>{if(activeMode==="live"&&el("liveCircuit").value)loadLiveCircuit()});el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
  else {++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
+function translateTyre(d){const s=d.Stints;let st=Array.isArray(s)?s[s.length-1]:(s&&typeof s==="object"?Object.values(s).slice(-1)[0]:null);const raw=String(st?.Compound||d.Compound||d.TyreCompound||"").toUpperCase();return ({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[raw]||raw||"—"}
 async function refreshLive(){
  if(activeMode!=="live"||liveBusy)return;liveBusy=true;
  try{
@@ -113,7 +114,7 @@ async function refreshLive(){
  const sectors=Array.isArray(d.Sectors)?d.Sectors:[];
  const lap=d.BestLapTime?.Value||"";
  const gap=typeof d.GapToLeader==="string"?d.GapToLeader:"";
- return '<tr><td>'+esc(d.Position||"—")+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(lap||"—")+'</td>'+[0,1,2].map(i=>'<td>'+esc(sectors[i]?.Value||"—")+'</td>').join("")+'<td>'+esc(d.InPit?"Boxes":d.Retired?"Retirado":"—")+'</td></tr>'
+ return '<tr><td>'+esc(d.Position||"—")+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(lap||"—")+'</td>'+[0,1,2].map(i=>'<td>'+esc(sectors[i]?.Value||"—")+'</td>').join("")+'<td>'+esc(d.InPit?"Boxes":d.Retired?"Retirado":translateTyre(d))+'</td></tr>'
  }).join(""):'<tr><td colspan="9">Conexión reciente, pero el proveedor no ha entregado pilotos utilizables.</td></tr>';
  const raw=fr.status==="fulfilled"?(fr.value.datos||{}):null;
  const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);

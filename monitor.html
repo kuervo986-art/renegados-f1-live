@@ -35,6 +35,19 @@ const incident=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(
 if(incident){const action=incident[3].toUpperCase();const desc={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado por Dirección de Carrera","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin sanción adicional"}[action];return "Incidente en la curva "+incident[1]+" entre los coches "+incident[2]+": "+desc+(incident[4]?" "+incident[4]:"");}
 const steward=s.match(/^FIA STEWARDS:\s*(.+)$/i);
 if(steward)return "Comisarios de la FIA: "+translate(steward[1]);
+
+const penalty=s.match(/^(\d+)\s+SECOND\s+TIME\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*-\s*(.+)$/i);
+if(penalty)return "Penalización de "+penalty[1]+" segundos para el coche "+penalty[2]+" ("+penalty[3]+"): "+translateReason(penalty[4]);
+const penalty2=s.match(/^(\d+)\s+SECOND\s+(STOP\s+AND\s+GO|DRIVE\s+THROUGH)\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*-\s*(.+)$/i);
+if(penalty2)return "Penalización de "+(penalty2[2].toUpperCase().includes("STOP")?"parada y continuación":"paso por boxes")+" de "+penalty2[1]+" segundos para el coche "+penalty2[3]+" ("+penalty2[4]+"): "+translateReason(penalty2[5]);
+const generalIncident=s.match(/^INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|REVIEWED(?:\s+NO FURTHER INVESTIGATION)?|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*-\s*(.+)$/i);
+if(generalIncident){
+ const act=generalIncident[2].toUpperCase();
+ const description={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado","REVIEWED":"revisado","REVIEWED NO FURTHER INVESTIGATION":"revisado, sin más investigación","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin medidas adicionales"}[act]||"";
+ return "Incidente con el coche o coches "+generalIncident[1]+": "+description+". Motivo: "+translateReason(generalIncident[3]);
+}
+const generalReason=s.match(/^(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION)\s*-\s*(.+)$/i);
+if(generalReason)return translateReason(generalReason[1])+": "+({"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado","NO FURTHER INVESTIGATION":"sin más investigación"}[generalReason[2].toUpperCase()])+". "+translateReason(generalReason[3]);
 const rules=[
 [/^GREEN LIGHT\s*-\s*PIT EXIT OPEN$/i,"Semáforo verde: salida de boxes abierta"],
 [/^YELLOW IN PIT LANE$/i,"Bandera amarilla en el carril de boxes"],
@@ -63,6 +76,8 @@ const rules=[
 [/^VIRTUAL SAFETY CAR ENDING/i,"Finalizando coche de seguridad virtual"],
 [/^VIRTUAL SAFETY CAR DEPLOYED/i,"Coche de seguridad virtual activado"],
 [/^SAFETY CAR IN THIS LAP/i,"El coche de seguridad entra en boxes esta vuelta"],
+[/^SAFETY CAR LIGHTS ON$/i,"Luces del coche de seguridad encendidas"],
+[/^SAFETY CAR LIGHTS OFF$/i,"Luces del coche de seguridad apagadas"],
 [/^SAFETY CAR DEPLOYED/i,"Coche de seguridad en pista"],
 [/^TRACK CLEAR$/i,"Pista despejada"],
 [/^NO FURTHER INVESTIGATION/i,"No se investigará más"],
@@ -72,7 +87,28 @@ const rules=[
 [/^PIT LANE ENTRY OPEN/i,"Entrada a boxes abierta"]
 ];
 for(const [re,translation] of rules){if(re.test(s))return s.replace(re,translation)}
-return s;
+return "Aviso original de la FIA (traducción no disponible): "+s;
+}
+function translateReason(value){
+ let s=String(value||"").trim();
+ const time=s.match(/\s*(\(\d{1,2}:\d{2}:\d{2}\))$/);
+ const suffix=time?(" "+time[1]):"";
+ if(time)s=s.slice(0,time.index).trim();
+ const parts=[
+ [/^SPEEDING IN THE PIT LANE$/i,"exceso de velocidad en el carril de boxes"],
+ [/^SPEEDING IN PIT LANE$/i,"exceso de velocidad en el carril de boxes"],
+ [/^CAUSING A COLLISION$/i,"provocar una colisión"],
+ [/^LEAVING THE TRACK AND GAINING AN ADVANTAGE$/i,"salirse de la pista y obtener ventaja"],
+ [/^LEAVING PIT EXIT ON RED LIGHT$/i,"salir de boxes con el semáforo rojo"],
+ [/^UNSAFE RELEASE$/i,"incorporación insegura desde boxes"],
+ [/^TRACK LIMITS$/i,"límites de pista"],
+ [/^IGNORING YELLOW FLAGS$/i,"ignorar las banderas amarillas"],
+ [/^FAILURE TO FOLLOW RACE DIRECTOR.?S INSTRUCTIONS$/i,"incumplir las instrucciones de Dirección de Carrera"],
+ [/^IMPEDING CAR (\d+)$/i,"obstaculizar al coche $1"],
+ [/^UNSAFE REJOIN$/i,"reincorporación insegura a pista"]
+ ];
+ for(const [pattern,replacement] of parts)if(pattern.test(s))return s.replace(pattern,replacement)+suffix;
+ return "motivo original: "+s+suffix;
 }
 function translateCategory(c){return ({Other:"Otros",Flag:"Bandera",SafetyCar:"Coche de seguridad",Drs:"DRS",SessionStatus:"Estado de sesión",CarEvent:"Incidente de un coche",Track:"Estado de pista"})[c]||c||"Dirección de carrera"}
 function label(e){if(e.flag==="CLEAR")return "Estado de pista · Despejada";let c={Flag:"Bandera",SessionStatus:"Estado de la sesión",SafetyCar:"Coche de seguridad",Other:"Otros",Drs:"DRS"}[e.category]||e.category||"Aviso";let f={YELLOW:"Amarilla",GREEN:"Verde",RED:"Roja",DOUBLE_YELLOW:"Doble amarilla"}[e.flag]||e.flag||"";return c+(f?" · "+f:"")}

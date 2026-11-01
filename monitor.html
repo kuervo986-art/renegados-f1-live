@@ -71,7 +71,28 @@ function draw(points){let vals=points.filter(p=>Number.isFinite(p.x)&&Number.isF
 let availableSessions=[];
 let liveCircuitSessions=[], liveMapLoad=0;
 async function initLiveCircuit(){try{liveCircuitSessions=await api("/api/historico/sesiones?year=2026");const races=liveCircuitSessions.filter(s=>s.session_name==="Race");const items=races.length?races:liveCircuitSessions;const keys=[...new Set(items.map(circuitKey))];el("liveCircuit").innerHTML='<option value="">Selecciona un circuito</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join("");const mexico=keys.find(k=>/mexic/i.test(k));if(mexico)el("liveCircuit").value=mexico;else if(keys.length)el("liveCircuit").value=keys[keys.length-1];}catch(e){el("liveCircuit").innerHTML='<option value="">Circuitos no disponibles</option>';el("mapStatus").textContent="No se pudo obtener la lista de circuitos: "+e.message}}
-async function loadLiveCircuit(){const key=el("liveCircuit").value;if(!key){el("mapStatus").textContent="Selecciona primero un circuito.";return}const race=liveCircuitSessions.filter(s=>circuitKey(s)===key).sort((a,b)=>(a.session_name==="Race"?-1:0)-(b.session_name==="Race"?-1:0))[0];if(!race)return;const requestId=++liveMapLoad;el("mapStatus").textContent="Reconstruyendo trazado GPS histórico de "+key+"…";try{const map=await api("/api/historico/mapa/"+race.session_key);if(requestId!==liveMapLoad||activeMode!=="live")return;draw(map.coordenadas||[]);el("mapStatus").textContent="Circuito: "+key+" · trazado histórico con "+(map.coordenadas||[]).length+" puntos GPS. Sin posiciones en directo verificadas."}catch(e){if(requestId===liveMapLoad){el("mapStatus").textContent="El trazado histórico no está disponible: "+e.message;el("placeholder").textContent="Mapa no disponible"}}}
+async function loadLiveCircuit(){
+ const key=el("liveCircuit").value;
+ if(!key){el("mapStatus").textContent="Selecciona primero un circuito.";return}
+ const sessions=liveCircuitSessions.filter(s=>circuitKey(s)===key).sort((a,b)=>String(b.date_end||b.date_start).localeCompare(String(a.date_end||a.date_start)));
+ const finished=sessions.filter(s=>s.date_end&&Date.parse(s.date_end)<Date.now()-3600000);
+ const requestId=++liveMapLoad;
+ el("mapStatus").textContent="Buscando trazado GPS histórico del circuito "+key+"…";
+ el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="Buscando trazado histórico…";
+ let lastError="No hay una sesión finalizada con datos GPS disponibles.";
+ for(const session of finished){
+  try{
+   const map=await api("/api/historico/mapa/"+session.session_key);
+   if(requestId!==liveMapLoad||activeMode!=="live")return;
+   draw(map.coordenadas||[]);
+   el("mapStatus").textContent="Trazado histórico del circuito "+key+" ("+sessionLabel(session.session_name)+"). "+map.coordenadas.length+" coordenadas reales. No son posiciones actuales de los coches.";
+   return;
+  }catch(error){lastError=error.message}
+ }
+ if(requestId!==liveMapLoad||activeMode!=="live")return;
+ el("placeholder").textContent="GPS histórico no disponible";
+ el("mapStatus").textContent="No se ha podido dibujar el trazado: "+lastError;
+}
 
 function circuitKey(s){return [s.country_name||"País desconocido",s.location||"Circuito"].join(" · ")}
 function sessionLabel(name){return ({Race:"Carrera",Sprint:"Sprint",Qualifying:"Clasificación","Sprint Qualifying":"Clasificación Sprint"})[name]||name}

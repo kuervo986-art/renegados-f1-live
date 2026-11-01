@@ -8,6 +8,7 @@
 <div id="liveSummary" class="panel" hidden style="padding:14px;margin-bottom:12px"><strong>🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
 <section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado calculado con GPS histórico</span><span class="key">● Sin posiciones instantáneas verificadas</span></div></div></section>
 <section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Se mostrarán diez avisos aproximadamente. Desplázate con la rueda para consultar el resto.</div></div></section></div>
+<section class="panel" style="margin-top:12px"><h2>🚧 LÍMITES DE PISTA · CONTROL FIA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>AVISOS</th><th>VUELTAS ANULADAS</th><th>OTROS INCIDENTES</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
 <section class="panel" style="margin-top:12px"><h2>⏱️ SECTORES · S1 / S2 / S3</h2><p class="info">Tiempos S1, S2 y S3. La diferencia con el líder y el GAP entre pilotos aparecen juntos en el cronometraje principal.</p><div class="scroll" style="max-height:270px"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody id="sectors"><tr><td colspan="5">Sin datos de sectores.</td></tr></tbody></table></div></section>
 <section class="panel" style="margin-top:12px"><h2>🎙️ RADIOS DE EQUIPO · AUDIO ORIGINAL</h2><p class="info">Comunicaciones del receptor. La traducción al español aún no está disponible: no se inventan transcripciones. Audio sujeto a disponibilidad y permisos de reproducción.</p><div id="radios"><div class="info">Selecciona En directo para consultar las radios.</div></div></section>
 </main><footer>RENEGADOS F1 LIVE · Datos históricos OpenF1 · Proyecto independiente · La disponibilidad del directo no está garantizada.</footer>
@@ -171,7 +172,7 @@ function changeMode(mode){
  for(const id of ["historyYearLabel","find","historyCircuitLabel","circuit","session","load"])el(id).hidden=live;
  el("liveSummary").hidden=!live;
  if(live){el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit().then(()=>{if(activeMode==="live"&&el("liveCircuit").value)loadLiveCircuit()});el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
- else {el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
+ else {el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
 function pitStops(d){const value=d.NumberOfPitStops??d.PitStopCount??d.PitStopsCount??null;const n=Number(value);return value!==null&&value!==""&&Number.isInteger(n)&&n>=0&&n<30?String(n):"—"}
 function pitStatus(d){return d.InPit?"EN BOXES":d.PitOut?"SALIENDO":d.Retired?"RETIRADO":d.Stopped?"DETENIDO":"—"}
@@ -182,6 +183,27 @@ function translateTyre(d){
  let raw=String(st?.Compound??d.Compound??d.TyreCompound??d.Tyre?.Compound??"").trim().toUpperCase();
  const tyre={SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema",S:"Blando",M:"Medio",H:"Duro",I:"Intermedio",W:"Lluvia extrema"};
  return tyre[raw]||raw||"—";
+}
+function renderTrackLimits(messages,available){
+ const info=el("limitsInfo"),target=el("limits");
+ if(!available){info.textContent="No se han podido verificar los mensajes FIA. Recuento no disponible.";target.innerHTML='<tr><td colspan="4">Fuente FIA no disponible.</td></tr>';return}
+ const tally=new Map(),seen=new Set();
+ for(const m of messages){
+  const message=String(m.Message||m.message||m.text||"").trim();
+  if(!/TRACK LIMITS|EXCEEDING TRACK LIMITS|EXCEEDING THE TRACK LIMITS|TRACK LIMIT/i.test(message))continue;
+  const number=(message.match(/\bCAR\s+(\d+)\b/i)||[])[1];
+  if(!number)continue;
+  const key=[m.Utc||m.timestamp||m.time||m.utc||"",message].join("|");
+  if(seen.has(key))continue;seen.add(key);
+  const row=tally.get(number)||{number,notices:0,deleted:0,other:0};
+  if(/\bTIME\b.*\bDELETED\b|\bLAP TIME DELETED\b/i.test(message))row.deleted++;
+  else if(/\bNOTED\b|\bUNDER INVESTIGATION\b|\bWARNING\b|\bINFRINGEMENT\b|\bEXCEEDED\b|\bEXCEEDING\b/i.test(message))row.notices++;
+  else row.other++;
+  tally.set(number,row);
+ }
+ info.textContent="Conteo automático de mensajes FIA que mencionan límites de pista. Una vuelta anulada no cuenta además como aviso; las advertencias oficiales pueden tener un total diferente.";
+ const rows=[...tally.values()].sort((a,b)=>(b.notices+b.deleted+b.other)-(a.notices+a.deleted+a.other));
+ target.innerHTML=rows.length?rows.map(r=>'<tr><td>Coche '+esc(r.number)+'</td><td>'+r.notices+'</td><td>'+r.deleted+'</td><td>'+r.other+'</td></tr>').join(""):'<tr><td colspan="4">Sin incidencias de límites de pista identificadas en los mensajes recibidos.</td></tr>';
 }
 function renderRadios(result){
  const box=el("radios");
@@ -245,9 +267,10 @@ async function refreshLive(){
  const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);
  const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
  const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
+ renderTrackLimits(valid,fr.status==="fulfilled");
  el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
- }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
+ }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}
 }
 el("modeHistory").onclick=()=>changeMode("history");

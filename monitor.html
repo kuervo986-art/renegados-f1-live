@@ -27,6 +27,8 @@ const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
 if(push)return "Colocar los coches al frente en este orden: "+push[1];
 const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);
 if(resume)return "Orden de reanudación: "+resume[1];
+const reviewed=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+REVIEWED\s+NO FURTHER INVESTIGATION\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
+if(reviewed)return "Incidente del coche "+reviewed[1]+" ("+reviewed[2]+") revisado: no habrá más investigación por salir de boxes con el semáforo rojo"+(reviewed[3]?" "+reviewed[3]:"");
 const pitIncident=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+(NOTED|UNDER INVESTIGATION)\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
 if(pitIncident)return "Incidente del coche "+pitIncident[1]+" ("+pitIncident[2]+"): salida de boxes con el semáforo rojo; "+(pitIncident[3].toUpperCase()==="NOTED"?"incidente registrado":"bajo investigación")+(pitIncident[4]?" "+pitIncident[4]:"");
 const incident=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*(\([^)]*\))?$/i);

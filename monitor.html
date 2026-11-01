@@ -16,6 +16,10 @@ function translate(s){
 s=String(s||"").trim();
 let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
 if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
+const incident=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*(\([^)]*\))?$/i);
+if(incident){const action=incident[3].toUpperCase();const desc={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado por Dirección de Carrera","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin sanción adicional"}[action];return "Incidente en la curva "+incident[1]+" entre los coches "+incident[2]+": "+desc+(incident[4]?" "+incident[4]:"");}
+const steward=s.match(/^FIA STEWARDS:\s*(.+)$/i);
+if(steward)return "Comisarios de la FIA: "+translate(steward[1]);
 const rules=[
 [/^GREEN LIGHT\s*-\s*PIT EXIT OPEN$/i,"Semáforo verde: salida de boxes abierta"],
 [/^YELLOW IN PIT LANE$/i,"Bandera amarilla en el carril de boxes"],
@@ -55,6 +59,7 @@ const rules=[
 for(const [re,translation] of rules){if(re.test(s))return s.replace(re,translation)}
 return s;
 }
+function translateCategory(c){return ({Other:"Otros",Flag:"Bandera",SafetyCar:"Coche de seguridad",Drs:"DRS",SessionStatus:"Estado de sesión",CarEvent:"Incidente de un coche",Track:"Estado de pista"})[c]||c||"Dirección de carrera"}
 function label(e){if(e.flag==="CLEAR")return "Estado de pista · Despejada";let c={Flag:"Bandera",SessionStatus:"Estado de la sesión",SafetyCar:"Coche de seguridad",Other:"Otros",Drs:"DRS"}[e.category]||e.category||"Aviso";let f={YELLOW:"Amarilla",GREEN:"Verde",RED:"Roja",DOUBLE_YELLOW:"Doble amarilla"}[e.flag]||e.flag||"";return c+(f?" · "+f:"")}
 function renderData(d){let drivers=d.drivers||[],laps=d.laps||[],stints=d.stints||[],results=d.session_result||[];let rows=drivers.map(driver=>{let l=laps.filter(x=>x.driver_number===driver.driver_number&&typeof x.lap_duration==="number"&&x.lap_duration>0&&!x.is_pit_out_lap).sort((a,b)=>a.lap_duration-b.lap_duration),r=results.find(x=>x.driver_number===driver.driver_number),tyre=stints.filter(x=>x.driver_number===driver.driver_number).sort((a,b)=>(b.stint_number||0)-(a.stint_number||0))[0];return{driver,best:l[0],r,tyre}}).sort((a,b)=>(a.r?.position??999)-(b.r?.position??999));let leader=rows[0]?.best?.lap_duration;let sessionType=el("session").selectedOptions[0]?.textContent||"";let isRace=/^(Carrera|Sprint) ·/.test(sessionType);
 el("timing").innerHTML=rows.map((x,i)=>'<tr><td>'+esc(x.r?.position??(i+1))+'</td><td><b>'+esc(x.driver.name_acronym)+'</b></td><td>'+esc(x.driver.team_name)+'</td><td>'+(isRace?(x.r?.gap_to_leader===0?"Líder":(x.r?.gap_to_leader??"—")):((typeof x.best?.lap_duration==="number"&&typeof leader==="number")?"+"+(x.best.lap_duration-leader).toFixed(3):"—"))+'</td><td>'+t(x.best?.lap_duration)+'</td><td>'+esc(x.best?.duration_sector_1)+'</td><td>'+esc(x.best?.duration_sector_2)+'</td><td>'+esc(x.best?.duration_sector_3)+'</td><td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia"})[x.tyre?.compound]||"—")+'</td></tr>').join("");
@@ -114,7 +119,7 @@ async function refreshLive(){
  const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);
  const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
  const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
- el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(m.Category||m.category||"Dirección de carrera")+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
+ el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
  }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}

@@ -21,6 +21,8 @@ function translate(s){
 s=String(s||"").trim();
 let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
 if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
+const resumeTime=s.match(/^RACE WILL RESUME AT\s+(\d{1,2}:\d{2})\s*$/i);
+if(resumeTime)return "La carrera se reanudará a las "+resumeTime[1];
 const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
 if(push)return "Colocar los coches al frente en este orden: "+push[1];
 const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);

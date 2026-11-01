@@ -110,9 +110,11 @@ async function refreshLive(){
  const gap=typeof d.GapToLeader==="string"?d.GapToLeader:"";
  return '<tr><td>'+esc(d.Position||"—")+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(lap||"—")+'</td>'+[0,1,2].map(i=>'<td>'+esc(sectors[i]?.Value||"—")+'</td>').join("")+'<td>'+esc(d.InPit?"Boxes":d.Retired?"Retirado":"—")+'</td></tr>'
  }).join(""):'<tr><td colspan="9">Conexión reciente, pero el proveedor no ha entregado pilotos utilizables.</td></tr>';
- const raw=fr.status==="fulfilled"?(fr.value.datos||{}):{};
- const events=Array.isArray(raw)?raw:Array.isArray(raw.Messages)?raw.Messages:Array.isArray(raw.messages)?raw.messages:Object.values(raw.Messages||raw.messages||{}).filter(m=>m&&typeof m==="object");
- el("fia").innerHTML=events.length?events.slice(-100).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div>'+esc(translate(m.Message||m.message||m.text||"Aviso"))+'</div></article>').join(""):'<div class="info">Sin mensajes FIA disponibles en el receptor.</div>';
+ const raw=fr.status==="fulfilled"?(fr.value.datos||{}):null;
+ const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);
+ const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
+ const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
+ el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(m.Category||m.category||"Dirección de carrera")+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
  }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}

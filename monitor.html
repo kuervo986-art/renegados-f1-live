@@ -88,25 +88,29 @@ function changeMode(mode){
 async function refreshLive(){
  if(activeMode!=="live"||liveBusy)return;liveBusy=true;
  try{
- const [a,b,c]=await Promise.allSettled([liveApi("/status"),liveApi("/timing"),liveApi("/race-control")]);
- if(a.status!=="fulfilled"||b.status!=="fulfilled")throw Error("No se han podido comprobar el estado y el cronometraje.");
- const status=a.value,timing=b.value;const stamp=timing.timestamp||status.timestamp||status.last_update||status.last_message_at;
+ const [sr,tr,fr]=await Promise.allSettled([api("/api/alternativa/status"),api("/api/alternativa/timing"),api("/api/alternativa/race-control")]);
+ if(sr.status!=="fulfilled"||tr.status!=="fulfilled")throw Error("El receptor no ha confirmado estado y clasificación recientes.");
+ const status=sr.value.datos||{},timing=tr.value.datos||{};
+ const stamp=status.lastMessageAt;
  const when=liveDate(stamp),age=when===null?null:Math.round((Date.now()-when)/1000);
- const connected=status.connected===true||status.connection_status==="CONNECTED"||status.status==="connected";
- const fresh=age!==null&&age>=0&&age<90&&connected;
- const session=status.session?.name||status.session?.session_name||status.session_name||status.session||"Sin sesión identificada";
- const lap=status.lap_count?.current||status.current_lap||status.lap||"—";
- const total=status.lap_count?.total||status.total_laps||"—";
- el("state").textContent=fresh?"● DIRECTO CONFIRMADO":"● DATOS EN DIRECTO SIN CONFIRMAR";
+ const fresh=sr.value.vigente===true&&tr.value.vigente===true&&status.isConnected===true&&status.status==="CONNECTED"&&age!==null&&age>=0&&age<90;
+ el("liveMeta").textContent="Receptor: "+(status.status||"Desconocido")+" · Último mensaje: "+(when?new Date(when).toLocaleString("es-ES"):"sin fecha")+" · Antigüedad: "+(age===null?"—":age+" s")+" · Fuente comunitaria experimental";
+ el("state").textContent=fresh?"● RECEPTOR CONECTADO · DATOS RECIENTES":"● DIRECTO NO VERIFICADO";
  el("state").style.borderColor=fresh?"#35875f":"#80652e";
- el("liveMeta").textContent="Sesión: "+(typeof session==="string"?session:"No identificada")+" · Vuelta "+lap+" / "+total+" · "+(stamp?"Datos del "+new Date(when||Date.now()).toLocaleString("es-ES"):"Sin marca temporal")+" · "+(fresh?"Conexión y actualización verificadas":"Fuente sin actualidad verificada; podrían ser datos anteriores");
- if(!fresh){el("timing").innerHTML='<tr><td colspan="9">Sin cronometraje en directo verificado. No se muestran tiempos antiguos.</td></tr>';el("fia").innerHTML='<div class="info">Avisos en directo no verificados. Consulta el histórico por separado.</div>';return;}
- const ds=objects(timing,"drivers").sort((x,y)=>Number(x.position||999)-Number(y.position||999));
- el("timing").innerHTML=ds.length?ds.map(d=>'<tr><td>'+esc(d.position)+'</td><td><b>'+esc(d.acronym||d.name||d.driver_number)+'</b></td><td>'+esc(d.team)+'</td><td>'+esc(d.gap_to_leader)+'</td><td>'+esc(d.best_lap_time)+'</td>'+[0,1,2].map(i=>'<td>'+esc(d.sectors?.[i]?.value)+'</td>').join("")+'<td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[String(d.tyre_compound||"").toUpperCase()]||d.tyre_compound)+'</td></tr>').join(""):'<tr><td colspan="9">El proveedor no ha devuelto tiempos de pilotos.</td></tr>';
- const msgs=c.status==="fulfilled"?objects(c.value,"messages"):[];
- el("fia").innerHTML=msgs.length?msgs.slice(0,60).map(m=>'<article><time>'+esc(m.timestamp||m.time||m.utc)+'</time><div>'+esc(translate(m.message||m.text||m.Message||m.category||"Aviso"))+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles desde la fuente de directo.</div>';
+ if(!fresh){el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
+ const lines=timing.Lines||{},order=Array.isArray(timing.Leaderboard)?timing.Leaderboard:[];
+ const ds=order.map(id=>lines[id]).filter(d=>d&&d.RacingNumber&&/^\d+$/.test(String(d.RacingNumber)));
+ el("timing").innerHTML=ds.length?ds.map(d=>{
+ const sectors=Array.isArray(d.Sectors)?d.Sectors:[];
+ const lap=d.BestLapTime?.Value||"";
+ const gap=typeof d.GapToLeader==="string"?d.GapToLeader:"";
+ return '<tr><td>'+esc(d.Position||"—")+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(lap||"—")+'</td>'+[0,1,2].map(i=>'<td>'+esc(sectors[i]?.Value||"—")+'</td>').join("")+'<td>'+esc(d.InPit?"Boxes":d.Retired?"Retirado":"—")+'</td></tr>'
+ }).join(""):'<tr><td colspan="9">Conexión reciente, pero el proveedor no ha entregado pilotos utilizables.</td></tr>';
+ const raw=fr.status==="fulfilled"?(fr.value.datos||{}):{};
+ const events=Array.isArray(raw)?raw:Array.isArray(raw.Messages)?raw.Messages:Array.isArray(raw.messages)?raw.messages:Object.values(raw.Messages||raw.messages||{}).filter(m=>m&&typeof m==="object");
+ el("fia").innerHTML=events.length?events.slice(-100).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div>'+esc(translate(m.Message||m.message||m.text||"Aviso"))+'</div></article>').join(""):'<div class="info">Sin mensajes FIA disponibles en el receptor.</div>';
  lastLiveSuccessful=Date.now();
- }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada: tiempos ocultos para evitar datos obsoletos.</td></tr>';el("fia").innerHTML='<div class="info">La conexión a los mensajes FIA no está verificada.</div>';el("state").textContent="● CONEXIÓN NO VERIFICADA";el("liveMeta").textContent="No se ha podido actualizar el directo: "+error.message+". Última comprobación correcta: "+(lastLiveSuccessful?new Date(lastLiveSuccessful).toLocaleTimeString("es-ES"):"ninguna")+". Los tiempos anteriores, si aparecen, no deben considerarse actuales."}
+ }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}
 }
 el("modeHistory").onclick=()=>changeMode("history");

@@ -21,6 +21,12 @@ function translate(s){
 s=String(s||"").trim();
 let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
 if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
+const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
+if(push)return "Colocar los coches al frente en este orden: "+push[1];
+const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);
+if(resume)return "Orden de reanudación: "+resume[1];
+const pitIncident=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+(NOTED|UNDER INVESTIGATION)\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
+if(pitIncident)return "Incidente del coche "+pitIncident[1]+" ("+pitIncident[2]+"): salida de boxes con el semáforo rojo; "+(pitIncident[3].toUpperCase()==="NOTED"?"incidente registrado":"bajo investigación")+(pitIncident[4]?" "+pitIncident[4]:"");
 const incident=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*(\([^)]*\))?$/i);
 if(incident){const action=incident[3].toUpperCase();const desc={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado por Dirección de Carrera","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin sanción adicional"}[action];return "Incidente en la curva "+incident[1]+" entre los coches "+incident[2]+": "+desc+(incident[4]?" "+incident[4]:"");}
 const steward=s.match(/^FIA STEWARDS:\s*(.+)$/i);

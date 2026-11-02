@@ -98,6 +98,16 @@ tbody tr:hover{background:#30445b70}
  #dashboardGrid>.panel.fiaCol{height:700px;min-height:700px;display:flex;flex-direction:column}
  #dashboardGrid>.panel.fiaCol #fia{height:auto!important;max-height:none!important;min-height:0;flex:1 1 0!important;overflow-y:auto}
 }
+
+/* FIA: listado independiente y acotado; evitar que crezca con todos los avisos */
+#dashboardGrid>.panel.fiaCol{overflow:hidden}
+#dashboardGrid>.panel.fiaCol #fia{
+ display:block!important;flex:0 1 auto!important;
+ height:465px!important;max-height:465px!important;
+ overflow-y:auto!important;overflow-x:hidden;
+ overscroll-behavior:contain;
+}
+@media(max-width:750px){#dashboardGrid>.panel.fiaCol #fia{height:430px!important;max-height:430px!important}}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>F1 LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>

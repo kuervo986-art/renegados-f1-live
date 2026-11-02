@@ -3,6 +3,43 @@
 
 .pos-up{color:#65e5a0;font-weight:700}.pos-down{color:#ff8392;font-weight:700}.pos-delta{display:inline-block;margin-left:5px;font-size:11px}.changed-up{animation:riseFlash 2.3s ease-out}.changed-down{animation:fallFlash 2.3s ease-out}@keyframes riseFlash{from{background:#12543c}to{background:transparent}}@keyframes fallFlash{from{background:#612b38}to{background:transparent}}@media(prefers-reduced-motion:reduce){.changed-up,.changed-down{animation:none}}
 #radios{max-height:330px;overflow-y:auto;overscroll-behavior:contain}#radios article{padding:10px 12px;border-bottom:1px solid #304059}#radios audio{display:block;width:100%;max-width:480px;margin-top:7px}#radios .no-translation{color:#a4b6ca;font-size:12px;margin-top:5px}
+
+/* Renovación visual Pit Wall: sin alterar las conexiones de datos */
+:root{--bg:#090d14;--panel:#131d2b;--stroke:#304259;--accent:#f14861;--muted:#9cb0cb;font-variant-numeric:tabular-nums}
+body{background:radial-gradient(ellipse 65% 22% at 60% -8%,#24334d 0%,transparent 75%),var(--bg)}
+header{padding:18px 2%;background:linear-gradient(110deg,#141f31,#111725);border-bottom:2px solid var(--accent)}
+header h1{font-size:clamp(21px,2vw,28px);font-weight:850;letter-spacing:.08em}
+header small{font-size:11px;letter-spacing:.09em}
+main{padding:16px 1.5%}
+.panel{background:linear-gradient(155deg,#172336,#121b29 65%);border-color:var(--stroke);box-shadow:0 5px 24px #0003}
+.panel h2{border-bottom:1px solid #334962;background:linear-gradient(90deg,#203047,#172334);padding:14px 16px;font-weight:800;letter-spacing:.045em}
+.controls{gap:9px;margin-bottom:15px}
+button,select{transition:background .18s,border-color .18s,transform .18s;cursor:pointer}
+button:hover,select:hover{background:#354962;border-color:#7c8ca5}
+button:focus-visible,select:focus-visible{outline:2px solid #ffd072;outline-offset:2px}
+button.primary{background:#c92f4b}
+button.primary:hover{background:#ef4562}
+.status{border-radius:9px;padding:11px 14px;font-weight:650}
+.layout{grid-template-columns:minmax(400px,1.4fr) minmax(380px,1.6fr) minmax(280px,1fr);gap:14px}
+table{font-size:12px;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;z-index:2;background:#233149;color:#bdcee6;text-transform:uppercase;font-size:10px;letter-spacing:.045em}
+td,th{padding:10px 8px}
+tbody tr:nth-child(even){background:#ffffff06}
+tbody tr:hover{background:#30445b70}
+#timing td:first-child{font-size:14px;font-weight:800}
+#timing td:nth-child(2){font-size:13px;letter-spacing:.05em}
+#timing td:nth-child(4),#timing td:nth-child(5),#timing td:nth-child(6){font-weight:650}
+#timing tr[data-team-color] td:nth-child(2){border-left:4px solid var(--team-color,#8294b1);padding-left:10px}
+.tyre-pill,.pit-pill{display:inline-block;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:750}
+.tyre-soft{background:#792d3b;color:#ffe0e4}.tyre-medium{background:#635021;color:#ffdf80}.tyre-hard{background:#c9d1df;color:#1c2939}.tyre-inter{background:#1c5944;color:#a9ffd8}.tyre-wet{background:#1d477b;color:#b6dcff}.tyre-unknown{color:#8fa2bd}
+.pit-active{background:#6b4219;color:#ffe1ab}.pit-out{background:#184f4a;color:#a4f7e2}
+#fia{background:#0d1725;scrollbar-width:thin}
+#fia article{border-left:3px solid #405370;margin:4px 5px;padding:11px 12px;border-radius:4px;background:#ffffff05}
+#fia article:hover{background:#24334b}
+#map{background:radial-gradient(circle at center,#121e2b,#080d16);border:1px solid #293e53}
+#track{filter:drop-shadow(0 0 7px #ef3e5688)}
+@media(max-width:1180px){.layout{grid-template-columns:1fr 1fr}.fiaCol{grid-column:span 2}#fia{height:340px}}
+@media(max-width:750px){.layout{grid-template-columns:minmax(0,1fr)}.fiaCol{grid-column:span 1}.controls{align-items:stretch}header{padding:13px 3%}.panel h2{font-size:12px}}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>F1 LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:14px;margin-bottom:12px"><strong>🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
@@ -261,7 +298,10 @@ async function refreshLive(){
  const change=positionHighlights.get(String(d.RacingNumber));
  const active=change&&change.until>now?change:null;
  const indicator=active?'<span class="pos-delta '+(active.change>0?'pos-up':'pos-down')+'">'+(active.change>0?'▲ +':'▼ ')+active.change+'</span>':'';
- return '<tr class="'+(active?(active.change>0?'changed-up':'changed-down'):'')+'"><td>'+esc(d.Position||"—")+indicator+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(Number(d.Position)===1?"Líder":d.IntervalToPositionAhead?.Value||"—")+'</td><td>'+esc(lap||"—")+'</td>'+'<td>'+esc(translateTyre(d))+'</td><td>'+esc(pitStops(d))+'</td><td>'+esc(pitStatus(d))+'</td></tr>'
+ const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||""))?"#"+d.TeamColour:"#8093ac";
+ const tyre=translateTyre(d),tyreClass=({Blando:"tyre-soft",Medio:"tyre-medium",Duro:"tyre-hard",Intermedio:"tyre-inter","Lluvia extrema":"tyre-wet"})[tyre]||"tyre-unknown";
+ const pit=pitStatus(d),pitClass=pit==="EN BOXES"?"pit-active":pit==="SALIENDO"?"pit-out":"";
+ return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(active?(active.change>0?'changed-up':'changed-down'):'')+'"><td>'+esc(d.Position||"—")+indicator+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(Number(d.Position)===1?"Líder":d.IntervalToPositionAhead?.Value||"—")+'</td><td>'+esc(lap||"—")+'</td><td><span class="tyre-pill '+tyreClass+'">'+esc(tyre)+'</span></td><td>'+esc(pitStops(d))+'</td><td><span class="pit-pill '+pitClass+'">'+esc(pit)+'</span></td></tr>'
  }).join(""):'<tr><td colspan="9">Conexión reciente, pero el proveedor no ha entregado pilotos utilizables.</td></tr>';
  renderRadios(rr);
  const raw=fr.status==="fulfilled"?(fr.value.datos||{}):null;

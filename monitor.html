@@ -350,10 +350,17 @@ function radioUrl(r){
  const raw=String(r.Path||r.Url||r.URL||r.AudioUrl||r.audio_url||r.recording_url||"").trim();
  if(!raw)return "";
  try{
-  const u=/^https:\/\//i.test(raw)?new URL(raw):new URL(raw.replace(/^\/+/,"").replace(/^static\//i,""),"https://livetiming.formula1.com/static/");
-  if(u.protocol!=="https:"||u.hostname!=="livetiming.formula1.com")return "";
-  if(!/^\/static\/(?:20\d{2})\/.*\.mp3$/i.test(u.pathname))return "";
-  return u.href;
+  let url;
+  if(/^https:\/\//i.test(raw))url=new URL(raw);
+  else{
+   const clean=raw.replace(/^\/+/,"");
+   if(!/^(?:static\/)?20\d{2}\//i.test(clean))return "";
+   url=new URL(clean.replace(/^static\//i,""),"https://livetiming.formula1.com/static/");
+  }
+  if(url.protocol!=="https:"||url.hostname!=="livetiming.formula1.com")return "";
+  if(!/^\/static\/20\d{2}\//i.test(url.pathname))return "";
+  if(!/\.mp3$/i.test(url.pathname))return "";
+  return url.href;
  }catch(e){return ""}
 }
 function renderRadios(result){
@@ -366,7 +373,8 @@ function renderRadios(result){
  const playable=!!url;
  const name=esc(r.Tla||r.BroadcastName||r.RacingNumber||"Piloto");
  const when=esc(r.Utc||r.Timestamp||r.Date||"");
- const audio=playable?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Escuchar grabación en la fuente original</a>':'<div class="no-translation">No se ha recibido un enlace de audio verificable.</div>';
+ const rawPath=String(r.Path||r.Url||r.URL||r.AudioUrl||r.audio_url||r.recording_url||'').trim();
+ const audio=playable?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Escuchar grabación en la fuente original</a>':rawPath?'<div class="no-translation">Aviso de radio recibido, pero la ruta de audio no es completa o no es compatible.</div>':'<div class="no-translation">Aviso recibido sin ruta de audio: el receptor no proporciona el MP3.</div>';
  return '<article><strong>'+name+'</strong> · <small>'+when+'</small>'+audio+'<div class="no-translation">Subtítulos en español: pendientes de transcripción.</div></article>';
  });
  box.innerHTML=items.join("");

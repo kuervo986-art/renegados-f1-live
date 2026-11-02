@@ -67,8 +67,7 @@ async function refresh(){
  let drivers=ids.map(id=>lines[id]).filter(d=>d&&/^\d+$/.test(String(d.RacingNumber||"")));
  const rows=drivers.map((d,i)=>({...d,_pos:Number(d.Position)||i+1,_best:extractBest(d,phase),_seconds:seconds(extractBest(d,phase))})).sort((a,b)=>a._pos-b._pos);
  const valid=rows.map(r=>r._seconds).filter(v=>v!==null),leader=valid.length?Math.min(...valid):null;
- const eliminated=phase===1?6:phase===2?6:0;
- const maxAllowed=phase===1?rows.length-6:phase===2?rows.length-6:rows.length;
+ const maxAllowed=phase===1?16:phase===2?10:rows.length;
  get("timing").innerHTML=rows.length?rows.map((d,i)=>{
  const danger=isQual&&phase>0&&phase<3&&rows.length>=18&&i>=maxAllowed;
  const diff=d._seconds!==null&&leader!==null?fmt(d._seconds-leader):"—";

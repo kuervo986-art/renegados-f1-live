@@ -69,7 +69,7 @@ tbody tr:hover{background:#30445b70}
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
 <section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado calculado con GPS histórico</span><span class="key">● Sin posiciones instantáneas verificadas</span></div></div></section>
-<section class="panel limits-compact"><h2>🚧 LÍMITES DE PISTA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>AVISOS</th><th>VUELTAS ANULADAS</th><th>OTROS INCIDENTES</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
+<section class="panel limits-compact"><h2>🚧 LÍMITES DE PISTA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>DETECTADAS</th><th>V. ANULADAS</th><th>RIESGO ESTIMADO</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
 <section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Se mostrarán diez avisos aproximadamente. Desplázate con la rueda para consultar el resto.</div></div></section></div>
 
 <section class="panel" style="margin-top:12px"><h2>⏱️ SECTORES · S1 / S2 / S3</h2><p class="info">Tiempos S1, S2 y S3. La diferencia con el líder y el GAP entre pilotos aparecen juntos en el cronometraje principal.</p><div class="scroll" style="max-height:270px"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody id="sectors"><tr><td colspan="5">Sin datos de sectores.</td></tr></tbody></table></div></section>
@@ -249,25 +249,31 @@ function translateTyre(d){
 }
 function renderTrackLimits(messages,available,drivers=[]){
  const info=el("limitsInfo"),target=el("limits");
- if(!available){info.textContent="No se han podido recuperar los mensajes FIA; no es posible verificar los límites de pista.";target.innerHTML='<tr><td colspan="4">Datos no disponibles.</td></tr>';return}
- const tally=new Map(),seen=new Set();
+ if(!available){info.textContent="No se ha podido verificar el historial FIA; riesgo desconocido.";target.innerHTML='<tr><td colspan="4">Datos no disponibles.</td></tr>';return}
+ const records=new Map(),seen=new Set();
  const driverNames=new Map(drivers.map(d=>[String(d.RacingNumber),d.Tla||d.BroadcastName||("Coche "+d.RacingNumber)]));
  for(const m of messages){
-  const message=String(m.Message||m.message||m.text||"").trim();
-  if(!/\bTRACK\s+LIMITS?\b|\bEXCEEDING\s+THE\s+TRACK\b/i.test(message))continue;
-  const number=String(m.RacingNumber||m.DriverNumber||m.driver_number||(message.match(/\bCARS?\s+(?:NUMBER\s+)?(\d+)\b/i)||[])[1]||"");
-  if(!/^\d+$/.test(number))continue;
-  const id=[m.Utc||m.timestamp||m.time||m.utc||"",message,number].join("|");
-  if(seen.has(id))continue;seen.add(id);
-  const row=tally.get(number)||{number,notices:0,deleted:0,other:0};
-  if(/\bTIME\b.*\bDELETED\b|\bLAP\s+TIME\s+DELETED\b/i.test(message))row.deleted++;
-  else if(/\bWARNING\b|\bNOTED\b|\bUNDER INVESTIGATION\b|\bINFRINGEMENT\b/i.test(message))row.notices++;
-  else row.other++;
-  tally.set(number,row);
+  const msg=String(m.Message||m.message||m.text||"").trim();
+  if(!/\bTRACK\s+LIMITS?\b|\bEXCEED(?:ING|ED)?\s+(?:THE\s+)?TRACK\b/i.test(msg))continue;
+  const id=String(m.RacingNumber||m.DriverNumber||m.driver_number||(msg.match(/\bCARS?\s+(?:NUMBER\s+)?(\d+)\b/i)||[])[1]||"");
+  if(!/^\d+$/.test(id))continue;
+  const signature=[m.Utc||m.timestamp||m.time||m.utc||"",msg,id].join("|");
+  if(seen.has(signature))continue;seen.add(signature);
+  const r=records.get(id)||{id,deleted:0,explicit:0,penalty:false,warning:false,other:0};
+  if(/\b(?:LAP\s+)?TIME\b.*\bDELETED\b/i.test(msg))r.deleted++;
+  else if(/\b(?:EXCEEDED|EXCEEDING)\b.*\bTRACK\b|\bINFRINGEMENT\b/i.test(msg))r.explicit++;
+  else r.other++;
+  if(/\b(?:\d+\s+SECOND|DRIVE THROUGH|STOP AND GO)\b.*\bPENALTY\b/i.test(msg))r.penalty=true;
+  if(/BLACK\s*(?:AND|&)\s*WHITE\s*FLAG|BLACK\s*\/\s*WHITE\s*FLAG/i.test(msg))r.warning=true;
+  records.set(id,r);
  }
- info.textContent="Se muestran "+tally.size+" pilotos con mensajes identificables sobre límites de pista. No es el contador oficial de infracciones: la FIA puede no publicar todas y algunos avisos no identifican al piloto.";
- const rows=[...tally.values()].sort((x,y)=>(y.notices+y.deleted+y.other)-(x.notices+x.deleted+x.other));
- target.innerHTML=rows.length?rows.map(r=>'<tr><td>'+esc(driverNames.get(r.number)||"Coche "+r.number)+'</td><td>'+r.notices+'</td><td>'+r.deleted+'</td><td>'+r.other+'</td></tr>').join(""):'<tr><td colspan="4">No hay mensajes individuales de límites de pista identificables en los avisos disponibles. No significa que no haya habido infracciones.</td></tr>';
+ const rows=[...records.values()].sort((x,y)=>(y.deleted+y.explicit)-(x.deleted+x.explicit));
+ info.textContent="Orientación FIA 2026: 3.ª infracción, aviso blanco/negro; 4.ª, sanción habitual de 5 s. Recuento parcial de mensajes, NO oficial. Hay excepciones.";
+ target.innerHTML=rows.length?rows.map(r=>{
+  const minimum=r.deleted+r.explicit;
+  const risk=r.penalty?"Sanción anunciada":r.warning?"Bandera B/N comunicada":minimum>=4?"Revisar: 4+ detectadas":minimum===3?"Atención: 3 detectadas":"Sin umbral confirmado";
+  return '<tr><td>'+esc(driverNames.get(r.id)||"Coche "+r.id)+'</td><td>'+minimum+' detectadas</td><td>'+r.deleted+'</td><td>'+esc(risk)+'</td></tr>';
+ }).join(""):'<tr><td colspan="4">Sin incidencias individualizadas identificables. El riesgo real es desconocido.</td></tr>';
 }
 function renderRadios(result){
  const box=el("radios");

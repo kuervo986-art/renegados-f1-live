@@ -4,6 +4,31 @@
 <style>
 :root{color-scheme:dark;font-family:Inter,Segoe UI,Arial,sans-serif;background:#080d15;color:#eef3fa}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0%,#233047 0%,#080d15 46%);min-height:100vh}header{padding:22px max(20px,4vw);display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #28344a;flex-wrap:wrap}.logo{font-weight:900;letter-spacing:.09em;font-size:clamp(20px,3vw,31px)}.logo strong{color:#f6475b}.sub{font-size:12px;color:#a1b0c8;margin-top:4px}.tag{padding:9px 14px;background:#172331;border:1px solid #344559;border-radius:22px;font-weight:700;font-size:12px}.container{max-width:1480px;margin:auto;padding:26px 4vw}h1{font-size:clamp(28px,4vw,46px);margin:8px 0}p{line-height:1.5}.muted{color:#a4b4ca}.eyebrow{font-weight:800;letter-spacing:.18em;color:#ff6c7b;font-size:11px}.actions,.tabs{display:flex;gap:10px;flex-wrap:wrap}.btn,button{font:inherit;cursor:pointer;color:#fff;border:1px solid #445470;border-radius:9px;background:#182438;padding:11px 16px;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn.main{background:#e53b52;border-color:#e53b52;font-weight:800}.btn:hover,button:hover{filter:brightness(1.18)}button[aria-selected=true]{border-color:#ff6474;background:#462232}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:24px}.card{border:1px solid #2b3d52;background:#101a29;border-radius:14px;padding:22px;min-width:0}.card h2{font-size:17px;margin-top:0}.span2{grid-column:span 2}.num{font-size:27px;font-weight:800}.warn{color:#ffd18a}.good{color:#89e2ba}.small{font-size:13px}.tabs{margin:24px 0 16px}section[hidden]{display:none}table{width:100%;border-collapse:collapse;min-width:550px}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #2b3d52;font-size:13px}th{color:#94a8c4}a{color:#ff8996}.tablewrap{overflow:auto}.chip{display:inline-block;padding:6px 8px;border-radius:7px;background:#263346;font-size:12px}footer{padding:40px 4vw;color:#8195af;text-align:center;font-size:12px}@media(max-width:850px){.grid{grid-template-columns:1fr}.span2{grid-column:span 1}} 
 .portal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:20px 0 12px}.portal-card{display:flex;flex-direction:column;gap:12px;padding:23px;border:1px solid #344761;border-radius:15px;background:linear-gradient(140deg,#1a2b42,#101a29);min-height:240px}.portal-card.qual{background:linear-gradient(140deg,#302235,#101a29)}.portal-card h2{font-size:25px;margin:0}.portal-card p{color:#aebfd7;font-size:14px;flex:1;margin:0}.portal-card .btn{align-self:flex-start}.portal-card .icon{font-size:32px}.support-links{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0 2px}.support-links a{text-decoration:none}.section-title{font-size:21px;margin:25px 0 8px}.tag{max-width:100%;overflow-wrap:anywhere}.eyebrow{margin-top:5px}@media(max-width:720px){.portal{grid-template-columns:1fr}.portal-card{min-height:210px}}
+
+/* Portada compacta en escritorio: sin afectar a los monitores */
+@media(min-width:851px){
+ header{padding-top:12px;padding-bottom:12px}
+ .container{padding-top:14px;padding-bottom:12px}
+ .container>h1{font-size:clamp(26px,3vw,37px);margin:5px 0}
+ .container>p.muted{margin:5px 0 10px;font-size:13px;line-height:1.35}
+ .portal{margin:12px 0 8px;gap:12px}
+ .portal-card{min-height:0;padding:15px 18px;gap:7px}
+ .portal-card .icon{font-size:22px;line-height:1}
+ .portal-card h2{font-size:21px}
+ .portal-card p{font-size:12px;line-height:1.35}
+ .portal-card .btn{padding:8px 12px;font-size:13px}
+ .support-links{margin:8px 0 0;gap:7px}
+ .support-links .btn{padding:7px 11px;font-size:12px}
+ .section-title{font-size:18px;margin:13px 0 5px}
+ .tabs{margin:7px 0 9px;gap:7px}
+ .tabs button{padding:8px 12px;font-size:12px}
+ #inicio .grid{margin-top:8px;gap:12px}
+ #inicio .card{padding:14px 17px}
+ #inicio .card h2{font-size:14px;margin-bottom:8px}
+ #inicio .num{font-size:21px}
+ #inicio .card p{font-size:11px;line-height:1.35;margin:7px 0}
+ footer{padding:12px 4vw}
+}
 </style></head><body>
 <header><div><div class="logo">RENEGADOS <strong>F1 LIVE</strong></div><div class="sub">CENTRAL DE MANDO · TODO EN ESPAÑOL</div></div><div class="tag" id="estado">● COMPROBANDO RECEPTOR</div></header>
 <main class="container">

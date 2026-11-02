@@ -110,6 +110,14 @@ tbody tr:hover{background:#30445b70}
  .layout-toolbar{margin-bottom:5px;font-size:10px;gap:8px}
  .layout-toolbar button{padding:4px 8px}
 }
+
+/* Segunda fila: límites y sectores exactamente iguales, 10 filas visibles */
+#dashboardGrid>.panel.limits-compact,#dashboardGrid>.panel.sectors-compact{height:395px;min-height:395px;max-height:395px;display:flex;flex-direction:column;overflow:hidden}
+#dashboardGrid>.panel.limits-compact>h2,#dashboardGrid>.panel.sectors-compact>h2{height:38px;flex:0 0 38px;padding:10px 12px}
+#dashboardGrid>.panel.limits-compact>.info,#dashboardGrid>.panel.sectors-compact>.info{height:41px;flex:0 0 41px;padding:7px 10px;overflow:hidden;font-size:10px;line-height:1.3}
+#dashboardGrid>.panel.limits-compact>.scroll,#dashboardGrid>.panel.sectors-compact>.scroll{height:316px!important;max-height:316px!important;flex:0 0 316px;overflow-y:auto;overflow-x:auto}
+#dashboardGrid>.panel.limits-compact th,#dashboardGrid>.panel.sectors-compact th{height:26px;padding:5px 8px}
+#dashboardGrid>.panel.limits-compact td,#dashboardGrid>.panel.sectors-compact td{height:29px;padding:5px 8px}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>F1 LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
@@ -313,12 +321,16 @@ function renderTrackLimits(messages,available,drivers=[]){
   if(/BLACK\s*(?:AND|&)\s*WHITE\s*FLAG|BLACK\s*\/\s*WHITE\s*FLAG/i.test(msg))r.warning=true;
   records.set(id,r);
  }
- const rows=[...records.values()].sort((x,y)=>(y.deleted+y.explicit)-(x.deleted+x.explicit));
- info.textContent="Orientación FIA 2026: 3.ª infracción, aviso blanco/negro; 4.ª, sanción habitual de 5 s. Recuento parcial de mensajes, NO oficial. Hay excepciones.";
+ const rankedDrivers=[...drivers].filter(d=>d.RacingNumber!=null).sort((a,b)=>Number(a.Position||999)-Number(b.Position||999));
+ const rankedIds=rankedDrivers.map(d=>String(d.RacingNumber));
+ const extraIds=[...records.keys()].filter(id=>!rankedIds.includes(id));
+ const rows=[...rankedIds,...extraIds].map(id=>records.get(id)||{id,deleted:null,explicit:null,penalty:false,warning:false,other:0});
+ info.textContent="Pilotos en orden de carrera; — significa sin datos, no cero infracciones. Orientación FIA 2026: 3.ª infracción, aviso blanco/negro; 4.ª, sanción habitual de 5 s. Recuento parcial de mensajes, NO oficial. Hay excepciones.";
  target.innerHTML=rows.length?rows.map(r=>{
-  const minimum=r.deleted+r.explicit;
-  const risk=r.penalty?"Sanción anunciada":r.warning?"Bandera B/N comunicada":minimum>=4?"Revisar: 4+ detectadas":minimum===3?"Atención: 3 detectadas":"Sin umbral confirmado";
-  return '<tr><td>'+esc(driverNames.get(r.id)||"Coche "+r.id)+'</td><td>'+minimum+' detectadas</td><td>'+r.deleted+'</td><td>'+esc(risk)+'</td></tr>';
+  const identified=r.deleted!==null;
+  const minimum=identified?r.deleted+r.explicit:null;
+  const risk=!identified?"Sin datos confirmados":r.penalty?"Sanción anunciada":r.warning?"Bandera B/N comunicada":minimum>=4?"Revisar: 4+ detectadas":minimum===3?"Atención: 3 detectadas":"Sin umbral confirmado";
+  return '<tr><td>'+esc(driverNames.get(r.id)||"Coche "+r.id)+'</td><td>'+(identified?minimum+' detectadas':'—')+'</td><td>'+(identified?r.deleted:'—')+'</td><td>'+esc(risk)+'</td></tr>';
  }).join(""):'<tr><td colspan="4">Sin incidencias individualizadas identificables. El riesgo real es desconocido.</td></tr>';
 }
 function renderRadios(result){

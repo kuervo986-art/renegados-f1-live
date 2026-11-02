@@ -332,12 +332,12 @@ async function refreshLive(){
 function enablePanelLayout(){
  const grid=el("dashboardGrid");
  const panels=[...grid.children].filter(p=>p.classList.contains("panel"));
- const original=panels.map(p=>p.dataset.panelId||p.querySelector("h2")?.textContent.trim()||"").join("|").split("|");
- panels.forEach((p,i)=>{p.dataset.panelId="panel-"+i;p.draggable=true;p.querySelector("h2")?.setAttribute("title","Arrastra desde aquí para mover este panel")});
- let saved=[];try{saved=JSON.parse(localStorage.getItem("renegados-panel-order-v1")||"[]")}catch(e){}
+ 
+ panels.forEach((p,i)=>{p.dataset.panelId="panel-"+i;p.draggable=false;const handle=p.querySelector("h2");if(handle){handle.draggable=true;handle.setAttribute("title","Arrastra desde aquí para mover este panel")}});
+ let saved=[];try{saved=JSON.parse(localStorage.getItem("renegados-panel-order-v2")||"[]")}catch(e){}
  if(Array.isArray(saved))saved.forEach(id=>{const p=panels.find(x=>x.dataset.panelId===id);if(p)grid.appendChild(p)});
  let dragged=null;
- grid.addEventListener("dragstart",e=>{const heading=e.target.closest("h2");if(!heading||!grid.contains(heading))return;dragged=heading.closest(".panel");dragged.classList.add("dragging");e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",dragged.dataset.panelId)});
+ grid.addEventListener("dragstart",e=>{const heading=e.target.closest("h2[draggable=true]");if(!heading||!grid.contains(heading))return;dragged=heading.closest(".panel");dragged.classList.add("dragging");e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",dragged.dataset.panelId)});
  grid.addEventListener("dragover",e=>{if(!dragged)return;const p=e.target.closest("#dashboardGrid>.panel");if(!p||p===dragged)return;e.preventDefault();e.dataTransfer.dropEffect="move";p.classList.add("drop-target")});
  grid.addEventListener("dragleave",e=>{const p=e.target.closest("#dashboardGrid>.panel");if(p)p.classList.remove("drop-target")});
  grid.addEventListener("drop",e=>{const p=e.target.closest("#dashboardGrid>.panel");if(!dragged||!p||p===dragged)return;e.preventDefault();p.classList.remove("drop-target");const rect=p.getBoundingClientRect();grid.insertBefore(dragged,e.clientY>rect.top+rect.height/2?p.nextSibling:p);try{localStorage.setItem("renegados-panel-order-v1",JSON.stringify([...grid.children].map(x=>x.dataset.panelId)))}catch(e){}});

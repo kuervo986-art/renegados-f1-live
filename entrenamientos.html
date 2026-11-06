@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RENEGADOS RACING LIVE · Clasificación</title>
+<style>
+:root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#090d14;color:#eef3fc}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1e2e43,#090d14 75%)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 2%;background:#151f2f;border-bottom:2px solid #f14b63}
+h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0c9}button{border:1px solid #50627d;border-radius:8px;padding:9px 14px;color:#fff;background:#24364c;cursor:pointer;font:inherit}button:hover{background:#39506b}main{padding:14px 1.7%}h2{font-size:14px;margin:0;padding:12px 14px;border-bottom:1px solid #34465e}p{margin:8px 0}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.panel{background:#152132;border:1px solid #34465e;border-radius:11px;overflow:hidden}.status{font-size:12px;color:#d9e8fa;flex:1}.phases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.phase{border:1px solid #3b4f69;padding:13px;border-radius:10px;background:#19283a}.phase strong{font-size:18px}.phase p{font-size:11px;color:#a5b7d0}.phase.on{border-color:#ff6b7b;background:#512632}.layout{display:grid;grid-template-columns:minmax(570px,2fr) minmax(300px,1fr);gap:12px;align-items:start}.scroll{overflow:auto;max-height:720px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}th{position:sticky;top:0;text-align:left;background:#23334b;color:#b7cbe4;font-size:10px;padding:10px 8px}td{border-bottom:1px solid #2c3a4f;padding:8px}tbody tr:nth-child(even){background:#ffffff05}.danger{background:#542d36!important}.danger td:first-child{color:#ff9ba4;font-weight:bold}.muted{color:#97abc4}.tag{display:inline-block;padding:4px 7px;border-radius:6px;background:#2d3e58;font-size:11px}#fia{max-height:650px;overflow-y:auto;padding:8px}#fia article{padding:10px;border-bottom:1px solid #34455f;font-size:12px}#fia time{display:block;color:#95a6c0;font-size:11px}.note{padding:11px;color:#aac0d9;font-size:12px}#phaseStatus{color:#ffd39b;font-size:12px}footer{padding:16px;color:#8093ae;text-align:center;font-size:11px}@media(max-width:900px){.layout{grid-template-columns:1fr}}@media(max-width:600px){.phases{gap:5px}.phase{padding:9px}h1{font-size:17px}main{padding:9px}}
+#timing tr[data-team-color] td:nth-child(2){border-left:4px solid var(--team-color,#8294b1);padding-left:10px}
+</style></head><body>
+<header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE ENTRENAMIENTOS · FP1 / FP2 / FP3</small></div><nav><a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
+<main>
+<div class="toolbar"><span class="tag">🛠️ Entrenamientos</span><button id="refresh">Actualizar ahora</button><span class="status" id="status">Esperando datos…</span></div>
+<div class="phases"><div class="phase" id="phase1"><strong>FP1</strong><p>Entrenamientos libres 1</p></div><div class="phase" id="phase2"><strong>FP2</strong><p>Entrenamientos libres 2</p></div><div class="phase" id="phase3"><strong>FP3</strong><p>Entrenamientos libres 3</p></div></div>
+<p id="phaseStatus">Se indicará la sesión activa únicamente cuando el receptor la identifique. Los entrenamientos no tienen eliminaciones.</p>
+<div class="layout">
+<section class="panel"><h2>⏱️ ENTRENAMIENTOS · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>DIFERENCIA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>VUELTAS</th></tr></thead><tbody id="timing"><tr><td colspan="10">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">Orden de tiempos de la sesión, sin eliminaciones. Las diferencias se calculan a partir de las mejores vueltas recibidas.</p></section>
+<section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
+</main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
+<script>
+"use strict";
+const BASE="https://renegados-f1-live.onrender.com",get=id=>document.getElementById(id);
+const esc=x=>String(x??"—").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+let busy=false;
+async function req(route){
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+ try{const r=await fetch(BASE+route,{signal:controller.signal,cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}
+ finally{clearTimeout(timeout)}
+}
+function seconds(v){if(typeof v==="number")return Number.isFinite(v)&&v>0?v:null;const s=String(v||"").trim();if(!s||s==="—")return null;const p=s.split(":").map(Number);if(p.some(x=>!Number.isFinite(x)))return null;if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2];return null}
+function fmt(v){return typeof v==="number"&&Number.isFinite(v)?("+"+v.toFixed(3)):"—"}
+function practicePart(session){
+ const parts=[session.Name,session.SessionName,session.Type,session.SessionType].filter(Boolean).map(String).join(" ");
+ if(!/(?:practice|entrenamiento|\bFP[123]\b|\bP[123]\b|free practice)/i.test(parts))return 0;
+ const match=parts.match(/(?:FP|practice|entrenamientos? libres?|\bP)\s*([123])\b/i);
+ return match?Number(match[1]):0;
+}
+function bestTime(d){
+ const v=d.BestLapTime?.Value??d.BestLapTime;
+ return typeof v==="string"||typeof v==="number"?v:"";
+}
+function tyre(d){
+ const items=d.Stints?Object.values(d.Stints):[];
+ const last=items[items.length-1]||{};
+ const t=String(last.Compound||d.Compound||"").toUpperCase();
+ return ({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[t]||"—"
+}
+function formatFia(x){
+ const s=String(x||"");
+ return s.replace(/^GREEN FLAG/i,"Bandera verde").replace(/^RED FLAG/i,"Bandera roja").replace(/^YELLOW IN TRACK SECTOR (\d+)/i,"Bandera amarilla en sector $1").replace(/^CLEAR IN TRACK SECTOR (\d+)/i,"Pista despejada en sector $1").replace(/^SESSION (STARTED|ENDED|SUSPENDED|RESUMED)/i,(_,v)=>({STARTED:"Sesión iniciada",ENDED:"Sesión terminada",SUSPENDED:"Sesión suspendida",RESUMED:"Sesión reanudada"})[v]).replace(/^CHEQUERED FLAG/i,"Bandera a cuadros");
+}
+async function refresh(){
+ if(busy)return;busy=true;
+ try{
+ const [s,t,f]=await Promise.allSettled([req("/api/alternativa/status"),req("/api/alternativa/timing"),req("/api/alternativa/race-control")]);
+ if(s.status!=="fulfilled"||t.status!=="fulfilled")throw Error("Sin conexión verificada con el cronometraje.");
+ const status=s.value.datos||{},data=t.value.datos||{};
+ const age=(Date.now()-Date.parse(status.lastMessageAt||""))/1000;
+ const recent=s.value.vigente===true&&t.value.vigente===true&&status.isConnected===true&&Number.isFinite(age)&&age>=0&&age<90;
+ if(!recent)throw Error("El receptor no tiene datos recientes verificados.");
+ const session=data.Session||{},name=String(session.Name||session.SessionName||session.Type||session.SessionType||"");
+ const part=practicePart(session);
+ const namedPractice=/(?:practice|entrenamiento|\bFP[123]\b|free practice)/i.test([session.Name,session.SessionName,session.Type,session.SessionType].filter(Boolean).join(" "));
+ get("status").textContent="Receptor conectado · "+(name||"Sesión no identificada")+" · actualización hace "+Math.round(age)+" s";
+ for(let i=1;i<=3;i++)get("phase"+i).classList.toggle("on",part===i);
+ get("phaseStatus").textContent=!namedPractice?"El receptor no confirma una sesión de entrenamientos activa. No se muestran tiempos de otras sesiones.":part?"FP"+part+" identificada · mejores vueltas y sectores en directo.":"Entrenamientos detectados; el receptor todavía no identifica FP1, FP2 o FP3.";
+ if(!namedPractice){
+  get("timing").innerHTML='<tr><td colspan="10">Esperando datos verificados de entrenamientos libres (FP1, FP2 o FP3).</td></tr>';
+  get("fia").innerHTML='<p class="note">Sin mensajes de entrenamientos verificados.</p>';
+  return;
+ }
+ const lines=data.Lines||{},ids=Array.isArray(data.Leaderboard)?data.Leaderboard:Object.keys(lines);
+ const drivers=ids.map(id=>lines[id]).filter(d=>d&&/^\d+$/.test(String(d.RacingNumber||"")));
+ const rows=drivers.map((d,i)=>({...d,_pos:Number(d.Position)||i+1,_best:bestTime(d),_seconds:seconds(bestTime(d))})).sort((a,b)=>a._pos-b._pos);
+ const valid=rows.map(r=>r._seconds).filter(v=>v!==null),leader=valid.length?Math.min(...valid):null;
+ get("timing").innerHTML=rows.length?rows.map(d=>{
+  const diff=d._seconds!==null&&leader!==null?fmt(d._seconds-leader):"—";
+  const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||""))?"#"+d.TeamColour:"#8294b1";
+  const laps=d.NumberOfLaps??d.Laps??"—";
+  return '<tr data-team-color="1" style="--team-color:'+color+'"><td>'+esc(d._pos)+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(d._best||"—")+'</td><td>'+esc(diff)+'</td><td>'+esc(tyre(d))+'</td>'+[0,1,2].map(j=>'<td>'+esc(d.Sectors?.[j]?.Value||"—")+'</td>').join("")+'<td>'+esc(laps)+'</td></tr>';
+ }).join(""):'<tr><td colspan="10">Todavía no se han recibido pilotos para estos entrenamientos.</td></tr>';
+ const raw=f.status==="fulfilled"?(f.value.datos||{}):{},events=raw.RaceControl||raw.Messages||[];
+ get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article><time>'+esc(e.Utc||e.timestamp||"")+'</time>'+esc(formatFia(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
+ }catch(e){get("status").textContent="Sin datos actuales confirmados: "+e.message;get("timing").innerHTML='<tr><td colspan="10">Esperando una sesión de entrenamientos con datos reales.</td></tr>';get("fia").innerHTML='<p class="note">Avisos no verificados.</p>'}
+ finally{busy=false}
+}
+get("refresh").onclick=refresh;refresh();setInterval(refresh,5000);
+</script></body></html>

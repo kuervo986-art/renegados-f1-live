@@ -124,6 +124,23 @@ tbody tr:hover{background:#30445b70}
 #dashboardGrid>.panel.limits-compact>.scroll,#dashboardGrid>.panel.sectors-compact>.scroll{height:327px!important;max-height:327px!important;flex-basis:327px}
 #dashboardGrid>.panel.limits-compact th,#dashboardGrid>.panel.sectors-compact th{height:24px;padding:4px 8px}
 #dashboardGrid>.panel.limits-compact td,#dashboardGrid>.panel.sectors-compact td{height:27px;padding:4px 8px}
+
+/* Código de color FIA: solo color, sin modificar tamaños ni distribución */
+#fia article.fia-green{border-left:4px solid #42d884}
+#fia article.fia-yellow{border-left:4px solid #ffd34f}
+#fia article.fia-red{border-left:4px solid #ff5268}
+#fia article.fia-blue{border-left:4px solid #60abff}
+#fia article.fia-white{border-left:4px solid #e9f0ff}
+#fia article.fia-black{border-left:4px solid #818b9e}
+#fia article.fia-checkered{border-left:4px solid #d6dae4}
+#fia article.fia-other{border-left:4px solid #425b7b}
+#fia article.fia-green .flag{color:#42d884}
+#fia article.fia-yellow .flag{color:#ffd34f}
+#fia article.fia-red .flag{color:#ff5268}
+#fia article.fia-blue .flag{color:#60abff}
+#fia article.fia-white .flag{color:#e9f0ff}
+#fia article.fia-black .flag{color:#c0c7d3}
+#fia article.fia-checkered .flag{color:#e4e8f1}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><button id="modeQual" type="button" onclick="window.location.href=&quot;./clasificacion.html&quot;">⏱️ Clasificación</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
@@ -136,6 +153,22 @@ tbody tr:hover{background:#30445b70}
 <section class="panel" style="margin-top:12px"><h2>🎙️ RADIOS DE EQUIPO · AUDIO ORIGINAL</h2><p class="info">Comunicaciones del receptor. La traducción al español aún no está disponible: no se inventan transcripciones. Audio sujeto a disponibilidad y permisos de reproducción.</p><div id="radios"><div class="info">Selecciona En directo para consultar las radios.</div></div></section>
 </main><footer>RENEGADOS RACING LIVE · Datos históricos OpenF1 · Proyecto independiente · La disponibilidad del directo no está garantizada. · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script>
+function fiaTone(e){
+ const flag=String(e.flag||e.Flag||"").toUpperCase().replace(/[\s-]+/g,"_");
+ const msg=String(e.message||e.Message||e.text||"").toUpperCase();
+ const cat=String(e.category||e.Category||"").toUpperCase();
+ if(/CHEQUERED|CHECKERED|CUADROS/.test(flag+" "+msg))return "checkered";
+ if(/DOUBLE_YELLOW|YELLOW/.test(flag)||/\b(?:DOUBLE\s+YELLOW|YELLOW\s+FLAG|BANDERA\s+AMARILLA|BANDERAS\s+AMARILLAS)\b/.test(msg))return "yellow";
+ if(/BLACK_AND_WHITE|BLACK_WHITE|BLACK\/WHITE/.test(flag+" "+msg))return "black";
+ if(/\bRED\b/.test(flag)||/\b(?:RED\s+FLAG|BANDERA\s+ROJA)\b/.test(msg))return "red";
+ if(/\bGREEN\b|\bCLEAR\b/.test(flag)||/\b(?:GREEN\s+FLAG|BANDERA\s+VERDE|TRACK\s+CLEAR|PISTA\s+DESPEJADA)\b/.test(msg)||(cat==="TRACK"&&/\bCLEAR\b/.test(msg)))return "green";
+ if(/\bBLUE\b/.test(flag)||/\b(?:BLUE\s+FLAG|BANDERA\s+AZUL)\b/.test(msg))return "blue";
+ if(/\bWHITE\b/.test(flag)||/\b(?:WHITE\s+FLAG|BANDERA\s+BLANCA)\b/.test(msg))return "white";
+ if(/\bBLACK\b/.test(flag)||/\b(?:BLACK\s+FLAG|BANDERA\s+NEGRA)\b/.test(msg))return "black";
+ if(/\b(?:SAFETY\s+CAR|VIRTUAL\s+SAFETY\s+CAR|COCHE\s+DE\s+SEGURIDAD)\b/.test(msg))return "yellow";
+ return "other";
+}
+
 "use strict";
 const BASE="https://renegados-f1-live.onrender.com", el=id=>document.getElementById(id);
 function esc(s){return String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -240,7 +273,7 @@ function renderData(d){let drivers=d.drivers||[],laps=d.laps||[],stints=d.stints
 el("timing").innerHTML=rows.map((x,i)=>'<tr><td>'+esc(x.r?.position??(i+1))+'</td><td><b>'+esc(x.driver.name_acronym)+'</b></td><td>'+esc(x.driver.team_name)+'</td><td>'+(isRace?(x.r?.gap_to_leader===0?"Líder":(x.r?.gap_to_leader??"—")):((typeof x.best?.lap_duration==="number"&&typeof leader==="number")?"+"+(x.best.lap_duration-leader).toFixed(3):"—"))+'</td><td>—</td><td>'+t(x.best?.lap_duration)+'</td><td>'+esc(x.best?.duration_sector_1)+'</td><td>'+esc(x.best?.duration_sector_2)+'</td><td>'+esc(x.best?.duration_sector_3)+'</td><td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia"})[x.tyre?.compound]||"—")+'</td></tr>').join("");
 el("sectors").innerHTML=rows.map((x,i)=>"<tr><td>"+esc(x.r?.position??i+1)+"</td><td>"+esc(x.driver.name_acronym)+"</td>"+[1,2,3].map(j=>"<td>"+esc(x.best?.["duration_sector_"+j]??"—")+"</td>").join("")+"</tr>").join("");
 let errors=d.errores_parciales||{},events=d.race_control||[];
-el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+esc(translate(e.message))+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
+el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+esc(translate(e.message))+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
 el("state").textContent="Histórico recibido: "+rows.length+" pilotos · "+events.length+" avisos FIA. No es una carrera en directo.";
 }
 function draw(points){let vals=points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));if(vals.length<30)throw Error("No hay suficientes coordenadas GPS");let xs=vals.map(p=>p.x),ys=vals.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),width=Math.max(0.000000001,maxX-minX),height=Math.max(0.000000001,maxY-minY),scale=Math.min(860/width,460/height),offsetX=(960-width*scale)/2,offsetY=(550-height*scale)/2;let path=vals.map((p,i)=>(i?"L":"M")+(offsetX+(p.x-minX)*scale).toFixed(2)+" "+(550-offsetY-(p.y-minY)*scale).toFixed(2)).join(" ");el("outline").setAttribute("d",path);el("track").setAttribute("d",path);el("placeholder").textContent=""}
@@ -430,7 +463,7 @@ async function refreshLive(){
  const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
  const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
  renderTrackLimits(valid,fr.status==="fulfilled",ds);
- el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
+ el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article class="fia-'+fiaTone(m)+'"><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
  }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}

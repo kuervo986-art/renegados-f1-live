@@ -183,6 +183,8 @@ async function api(path){const controller=new AbortController(),timeout=setTimeo
 function t(n){return typeof n==="number"?Math.floor(n/60)+":"+String((n%60).toFixed(3)).padStart(6,"0"):"—"}
 function translate(s){
 s=String(s||"").trim();
+const blueFlag=s.match(/^(?:WAVED|SHOWN|DISPLAYED)\s+BLUE\s+FLAGS?\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s+TIMED\s+AT\s+(\d{1,2}:\d{2}(?::\d{2})?)\.?$/i);
+if(blueFlag)return "Bandera azul mostrada al coche "+blueFlag[1]+" ("+blueFlag[2]+") a las "+blueFlag[3]+".";
 let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
 if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
 const resumeTime=s.match(/^RACE WILL RESUME AT\s+(\d{1,2}:\d{2})\s*$/i);

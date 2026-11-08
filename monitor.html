@@ -203,6 +203,19 @@ const reviewed=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+REVIEWED
 if(reviewed)return "Incidente del coche "+reviewed[1]+" ("+reviewed[2]+") revisado: no habrá más investigación por salir de boxes con el semáforo rojo"+(reviewed[3]?" "+reviewed[3]:"");
 const pitIncident=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+(NOTED|UNDER INVESTIGATION)\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
 if(pitIncident)return "Incidente del coche "+pitIncident[1]+" ("+pitIncident[2]+"): salida de boxes con el semáforo rojo; "+(pitIncident[3].toUpperCase()==="NOTED"?"incidente registrado":"bajo investigación")+(pitIncident[4]?" "+pitIncident[4]:"");
+const turnIncidentWithReason=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER\s+INVESTIGATION|NOTED|REVIEWED(?:\s+NO\s+FURTHER\s+INVESTIGATION)?|NO\s+FURTHER\s+INVESTIGATION|NO\s+FURTHER\s+ACTION)\s*[-–—]\s*(.+)$/i);
+if(turnIncidentWithReason){
+ const statuses={
+  "UNDER INVESTIGATION":"bajo investigación",
+  "NOTED":"registrado por Dirección de Carrera",
+  "REVIEWED":"revisado",
+  "REVIEWED NO FURTHER INVESTIGATION":"revisado, sin más investigación",
+  "NO FURTHER INVESTIGATION":"sin más investigación",
+  "NO FURTHER ACTION":"sin más medidas"
+ };
+ const cars=turnIncidentWithReason[2].replace(/\s+AND\s+/gi," y ");
+ return "Incidente en la curva "+turnIncidentWithReason[1]+" entre los coches "+cars+": "+statuses[turnIncidentWithReason[3].toUpperCase().replace(/\s+/g," ")]+". Motivo comunicado: "+translateReason(turnIncidentWithReason[4])+".";
+}
 const incident=s.match(/^TURN\s+(\d+)\s+INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*(\([^)]*\))?$/i);
 if(incident){const action=incident[3].toUpperCase();const desc={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado por Dirección de Carrera","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin sanción adicional"}[action];return "Incidente en la curva "+incident[1]+" entre los coches "+incident[2]+": "+desc+(incident[4]?" "+incident[4]:"");}
 const steward=s.match(/^FIA STEWARDS:\s*(.+)$/i);

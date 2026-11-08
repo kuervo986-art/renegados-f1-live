@@ -280,6 +280,53 @@ function draw(points){let vals=points.filter(p=>Number.isFinite(p.x)&&Number.isF
 let availableSessions=[];
 let liveCircuitSessions=[], liveMapLoad=0;
 let circuitFeatures=[];
+let lastMeetingInfo=null, userSelectedCircuit=false, currentMeetingKey="";
+function liveCircuitText(value){return String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function unsetLiveCircuit(message){
+ el("liveCircuit").value="";
+ el("outline").setAttribute("d","");
+ el("track").setAttribute("d","");
+ el("placeholder").textContent="Circuito no identificado";
+ el("mapStatus").textContent=message;
+}
+function findLiveCircuit(timing,status){
+ const session=timing.Session||timing.SessionInfo||{};
+ const meeting=session.Meeting||timing.Meeting||status.Meeting||{};
+ const circuit=meeting.Circuit||session.Circuit||{};
+ const country=meeting.Country||session.Country||{};
+ const raw=[meeting.Location,meeting.Name,meeting.OfficialName,circuit.ShortName,circuit.Name,
+ session.Location,session.CircuitName,session.MeetingName,timing.Location,timing.CircuitName,
+ status.Location,status.CircuitName,typeof country==="string"?country:country.Name];
+ const details=raw.filter(v=>typeof v==="string"&&v.trim()).map(liveCircuitText);
+ const aliases={"sao paulo":"interlagos","interlagos":"interlagos","abu dhabi":"yas marina","lusail":"lusail","losail":"lusail","mexico city":"mexico city","montreal":"montreal","austin":"austin","miami":"miami","las vegas":"las vegas","suzuka":"suzuka","singapore":"singapore","baku":"baku","jeddah":"jeddah","spielberg":"spielberg","spa francorchamps":"spa francorchamps","silverstone":"silverstone","monza":"monza","imola":"imola","budapest":"budapest","zandvoort":"zandvoort","melbourne":"melbourne","shanghai":"shanghai","sakhir":"sakhir","monaco":"monaco","madrid":"madrid","barcelona":"barcelona"};
+ const matches=circuitFeatures.map((feature,index)=>{
+  const name=liveCircuitText(feature.properties?.name),location=liveCircuitText(feature.properties?.location);
+  let score=0;
+  for(const detail of details){
+   if(detail===name||detail===location)score=Math.max(score,4);
+   else if(detail.length>=6&&(name.includes(detail)||(location.length>=5&&detail.includes(location))))score=Math.max(score,3);
+   for(const [alias,target] of Object.entries(aliases)){
+    if((detail===alias||detail.includes(alias+" ")||detail.endsWith(" "+alias))&&(location.includes(target)||name.includes(target)))score=Math.max(score,3);
+   }
+  }
+  return {index,score};
+ }).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score);
+ return {index:matches.length&&(matches.length===1||matches[0].score>matches[1].score)?matches[0].index:-1,identity:details.join("|")};
+}
+function syncLiveCircuit(timing,status){
+ lastMeetingInfo={timing,status};
+ if(!circuitFeatures.length)return;
+ const match=findLiveCircuit(timing,status);
+ if(match.index<0){
+  if(!userSelectedCircuit)unsetLiveCircuit("El receptor no confirma el circuito de esta sesión. Puedes elegirlo manualmente.");
+  return;
+ }
+ if(userSelectedCircuit&&match.identity===currentMeetingKey)return;
+ if(el("liveCircuit").value!==String(match.index)||match.identity!==currentMeetingKey){
+  el("liveCircuit").value=String(match.index);currentMeetingKey=match.identity;
+  userSelectedCircuit=false;loadLiveCircuit();
+ }
+}
 async function initLiveCircuit(){
  try{
   const response=await fetch("./circuits.geojson?v=1",{cache:"force-cache"});
@@ -288,9 +335,8 @@ async function initLiveCircuit(){
   circuitFeatures=(geo.features||[]).filter(f=>f.geometry?.type==="LineString"&&Array.isArray(f.geometry.coordinates));
   if(!circuitFeatures.length)throw Error("No hay trazados válidos");
   el("liveCircuit").innerHTML='<option value="">Selecciona circuito</option>'+circuitFeatures.map((f,i)=>'<option value="'+i+'">'+esc(f.properties.name)+" · "+esc(f.properties.location)+'</option>').join("");
-  const mexico=circuitFeatures.findIndex(f=>/mexico city|hermanos rodr/i.test(f.properties.location+" "+f.properties.name));
-  if(mexico>=0)el("liveCircuit").value=String(mexico);
-  el("mapStatus").textContent="Trazados independientes cargados: "+circuitFeatures.length+". Selecciona un circuito. No representan posiciones actuales.";
+  unsetLiveCircuit("Trazados cargados. Esperando identificar el Gran Premio desde el receptor.");
+  if(lastMeetingInfo)syncLiveCircuit(lastMeetingInfo.timing,lastMeetingInfo.status);
  }catch(error){
   el("liveCircuit").innerHTML='<option value="">No se pudieron cargar los trazados</option>';
   el("mapStatus").textContent="Error al abrir el archivo local de circuitos: "+error.message;
@@ -327,7 +373,7 @@ function changeMode(mode){
  el("modeLive").classList.toggle("primary",live);el("modeHistory").classList.toggle("primary",!live);
  for(const id of ["historyYearLabel","find","historyCircuitLabel","circuit","session","load"])el(id).hidden=live;
  el("liveSummary").hidden=!live;
- if(live){el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit().then(()=>{if(activeMode==="live"&&el("liveCircuit").value)loadLiveCircuit()});el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
+ if(live){el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
  else {el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
 function pitStops(d){const value=d.NumberOfPitStops??d.PitStopCount??d.PitStopsCount??null;const n=Number(value);return value!==null&&value!==""&&Number.isInteger(n)&&n>=0&&n<30?String(n):"—"}
@@ -424,7 +470,8 @@ async function refreshLive(){
  el("liveMeta").textContent="Receptor: "+(status.status||"Desconocido")+" · Último mensaje: "+(when?new Date(when).toLocaleString("es-ES"):"sin fecha")+" · Antigüedad: "+(age===null?"—":age+" s")+" · Fuente comunitaria experimental";
  el("state").textContent=fresh?"● RECEPTOR CONECTADO · DATOS RECIENTES":"● DIRECTO NO VERIFICADO";
  el("state").style.borderColor=fresh?"#35875f":"#80652e";
- if(!fresh){el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
+ if(!fresh){if(!userSelectedCircuit)unsetLiveCircuit("Sin sesión verificada: no se puede identificar el circuito.");el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
+ syncLiveCircuit(timing,status);
  const lines=timing.Lines||{},order=Array.isArray(timing.Leaderboard)?timing.Leaderboard:[];
  const ds=order.map(id=>lines[id]).filter(d=>d&&d.RacingNumber&&/^\d+$/.test(String(d.RacingNumber)));
  el("sectors").innerHTML=ds.map(d=>"<tr><td>"+esc(d.Position||"—")+"</td><td>"+esc(d.Tla||d.BroadcastName||d.RacingNumber)+"</td>"+[0,1,2].map(i=>"<td>"+esc(d.Sectors?.[i]?.Value||"—")+"</td>").join("")+"</tr>").join("");
@@ -489,5 +536,5 @@ el("modeHistory").onclick=()=>changeMode("history");
 el("modeLive").onclick=()=>changeMode("live");
 el("liveRefresh").onclick=refreshLive;
 el("liveMap").onclick=loadLiveCircuit;
-el("liveCircuit").onchange=loadLiveCircuit;
+el("liveCircuit").onchange=()=>{userSelectedCircuit=true;loadLiveCircuit()};
 </script></body></html>

@@ -6,6 +6,23 @@
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 2%;background:#151f2f;border-bottom:2px solid #f14b63}
 h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0c9}button{border:1px solid #50627d;border-radius:8px;padding:9px 14px;color:#fff;background:#24364c;cursor:pointer;font:inherit}button:hover{background:#39506b}main{padding:14px 1.7%}h2{font-size:14px;margin:0;padding:12px 14px;border-bottom:1px solid #34465e}p{margin:8px 0}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.panel{background:#152132;border:1px solid #34465e;border-radius:11px;overflow:hidden}.status{font-size:12px;color:#d9e8fa;flex:1}.phases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.phase{border:1px solid #3b4f69;padding:13px;border-radius:10px;background:#19283a}.phase strong{font-size:18px}.phase p{font-size:11px;color:#a5b7d0}.phase.on{border-color:#ff6b7b;background:#512632}.layout{display:grid;grid-template-columns:minmax(570px,2fr) minmax(300px,1fr);gap:12px;align-items:start}.scroll{overflow:auto;max-height:720px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}th{position:sticky;top:0;text-align:left;background:#23334b;color:#b7cbe4;font-size:10px;padding:10px 8px}td{border-bottom:1px solid #2c3a4f;padding:8px}tbody tr:nth-child(even){background:#ffffff05}.danger{background:#542d36!important}.danger td:first-child{color:#ff9ba4;font-weight:bold}.muted{color:#97abc4}.tag{display:inline-block;padding:4px 7px;border-radius:6px;background:#2d3e58;font-size:11px}#fia{max-height:650px;overflow-y:auto;padding:8px}#fia article{padding:10px;border-bottom:1px solid #34455f;font-size:12px}#fia time{display:block;color:#95a6c0;font-size:11px}.note{padding:11px;color:#aac0d9;font-size:12px}#phaseStatus{color:#ffd39b;font-size:12px}footer{padding:16px;color:#8093ae;text-align:center;font-size:11px}@media(max-width:900px){.layout{grid-template-columns:1fr}}@media(max-width:600px){.phases{gap:5px}.phase{padding:9px}h1{font-size:17px}main{padding:9px}}
 #timing tr[data-team-color] td:nth-child(2){border-left:4px solid var(--team-color,#8294b1);padding-left:10px}
+
+/* Código de color FIA: solo color, sin modificar tamaños ni distribución */
+#fia article.fia-green{border-left:4px solid #42d884}
+#fia article.fia-yellow{border-left:4px solid #ffd34f}
+#fia article.fia-red{border-left:4px solid #ff5268}
+#fia article.fia-blue{border-left:4px solid #60abff}
+#fia article.fia-white{border-left:4px solid #e9f0ff}
+#fia article.fia-black{border-left:4px solid #818b9e}
+#fia article.fia-checkered{border-left:4px solid #d6dae4}
+#fia article.fia-other{border-left:4px solid #425b7b}
+#fia article.fia-green .flag{color:#42d884}
+#fia article.fia-yellow .flag{color:#ffd34f}
+#fia article.fia-red .flag{color:#ff5268}
+#fia article.fia-blue .flag{color:#60abff}
+#fia article.fia-white .flag{color:#e9f0ff}
+#fia article.fia-black .flag{color:#c0c7d3}
+#fia article.fia-checkered .flag{color:#e4e8f1}
 </style></head><body>
 <header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE CLASIFICACIÓN · Q1 / Q2 / Q3</small></div><nav><a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
 <main>
@@ -17,6 +34,22 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 <section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de clasificación experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script>
+function fiaTone(e){
+ const flag=String(e.flag||e.Flag||"").toUpperCase().replace(/[\s-]+/g,"_");
+ const msg=String(e.message||e.Message||e.text||"").toUpperCase();
+ const cat=String(e.category||e.Category||"").toUpperCase();
+ if(/CHEQUERED|CHECKERED|CUADROS/.test(flag+" "+msg))return "checkered";
+ if(/DOUBLE_YELLOW|YELLOW/.test(flag)||/\b(?:DOUBLE\s+YELLOW|YELLOW\s+FLAG|BANDERA\s+AMARILLA|BANDERAS\s+AMARILLAS)\b/.test(msg))return "yellow";
+ if(/BLACK_AND_WHITE|BLACK_WHITE|BLACK\/WHITE/.test(flag+" "+msg))return "black";
+ if(/\bRED\b/.test(flag)||/\b(?:RED\s+FLAG|BANDERA\s+ROJA)\b/.test(msg))return "red";
+ if(/\bGREEN\b|\bCLEAR\b/.test(flag)||/\b(?:GREEN\s+FLAG|BANDERA\s+VERDE|TRACK\s+CLEAR|PISTA\s+DESPEJADA)\b/.test(msg)||(cat==="TRACK"&&/\bCLEAR\b/.test(msg)))return "green";
+ if(/\bBLUE\b/.test(flag)||/\b(?:BLUE\s+FLAG|BANDERA\s+AZUL)\b/.test(msg))return "blue";
+ if(/\bWHITE\b/.test(flag)||/\b(?:WHITE\s+FLAG|BANDERA\s+BLANCA)\b/.test(msg))return "white";
+ if(/\bBLACK\b/.test(flag)||/\b(?:BLACK\s+FLAG|BANDERA\s+NEGRA)\b/.test(msg))return "black";
+ if(/\b(?:SAFETY\s+CAR|VIRTUAL\s+SAFETY\s+CAR|COCHE\s+DE\s+SEGURIDAD)\b/.test(msg))return "yellow";
+ return "other";
+}
+
 "use strict";
 const BASE="https://renegados-f1-live.onrender.com",get=id=>document.getElementById(id);
 const esc=x=>String(x??"—").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -77,7 +110,7 @@ async function refresh(){
  return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger?'danger':'')+'"><td>'+esc(d._pos)+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(d._best?.Value||d._best||"—")+'</td><td>'+esc(diff)+'</td><td>'+esc(tyre(d))+'</td>'+[0,1,2].map(j=>'<td>'+esc(d.Sectors?.[j]?.Value||"—")+'</td>').join("")+'<td>'+esc(state)+'</td></tr>';
  }).join(""):'<tr><td colspan="10">Todavía no se han recibido pilotos para esta sesión.</td></tr>';
  const raw=f.status==="fulfilled"?(f.value.datos||{}):{},events=raw.RaceControl||raw.Messages||[];
- get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article><time>'+esc(e.Utc||e.timestamp||"")+'</time>'+esc(formatFia(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
+ get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.Utc||e.timestamp||"")+'</time><div class="flag">'+esc(({green:'Bandera verde',yellow:'Bandera amarilla',red:'Bandera roja',blue:'Bandera azul',white:'Bandera blanca',black:'Bandera negra / advertencia',checkered:'Bandera a cuadros'})[fiaTone(e)]||'Dirección de carrera')+'</div>'+esc(formatFia(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
  }catch(e){get("status").textContent="Sin datos actuales confirmados: "+e.message;get("timing").innerHTML='<tr><td colspan="10">Esperando una sesión de clasificación con datos reales.</td></tr>';get("fia").innerHTML='<p class="note">Avisos no verificados.</p>'}
  finally{busy=false}
 }

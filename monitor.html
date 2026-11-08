@@ -208,6 +208,8 @@ if(incident){const action=incident[3].toUpperCase();const desc={"UNDER INVESTIGA
 const steward=s.match(/^FIA STEWARDS:\s*(.+)$/i);
 if(steward)return "Comisarios de la FIA: "+translate(steward[1]);
 
+const servedPenalty=s.match(/^PENALTY\s+SERVED\s*[-–—]\s*(\d+)\s+SECOND(?:S)?\s+TIME\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*[-–—]\s*(.+)$/i);
+if(servedPenalty)return "Penalización de "+servedPenalty[1]+" segundos cumplida por el coche "+servedPenalty[2]+" ("+servedPenalty[3]+"): "+translateReason(servedPenalty[4])+".";
 const penalty=s.match(/^(\d+)\s+SECOND\s+TIME\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*-\s*(.+)$/i);
 if(penalty)return "Penalización de "+penalty[1]+" segundos para el coche "+penalty[2]+" ("+penalty[3]+"): "+translateReason(penalty[4]);
 const penalty2=s.match(/^(\d+)\s+SECOND\s+(STOP\s+AND\s+GO|DRIVE\s+THROUGH)\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*-\s*(.+)$/i);

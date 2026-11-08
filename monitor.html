@@ -141,10 +141,17 @@ tbody tr:hover{background:#30445b70}
 #fia article.fia-white .flag{color:#e9f0ff}
 #fia article.fia-black .flag{color:#c0c7d3}
 #fia article.fia-checkered .flag{color:#e4e8f1}
+
+/* Meteo superpuesta en el circuito: conserva tamaños y orden de los paneles */
+.circuit-map-wrap{position:relative}
+.circuit-weather{position:absolute;top:9px;left:9px;right:9px;display:flex;flex-wrap:wrap;gap:5px;pointer-events:none}
+.circuit-weather[hidden]{display:none}
+.circuit-weather .wx{background:rgba(12,22,36,.93);border:1px solid #3c536c;border-radius:6px;padding:5px 7px;font-size:10px;color:#c1cfe0;white-space:nowrap}
+.circuit-weather .wx strong{font-size:12px;color:#f3f7ff;margin-left:4px}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><button id="modeQual" type="button" onclick="window.location.href=&quot;./clasificacion.html&quot;">⏱️ Clasificación</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
-<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado calculado con GPS histórico</span><span class="key">● Sin posiciones instantáneas verificadas</span></div></div></section>
+<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><div class="circuit-map-wrap"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div id="weatherStrip" class="circuit-weather" aria-live="polite" hidden></div></div><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado calculado con GPS histórico</span><span class="key">● Sin posiciones instantáneas verificadas</span></div></div></section>
 <section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Se mostrarán diez avisos aproximadamente. Desplázate con la rueda para consultar el resto.</div></div></section>
 <section class="panel limits-compact"><h2>🚧 LÍMITES DE PISTA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>DETECTADAS</th><th>V. ANULADAS</th><th>RIESGO ESTIMADO</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
 <section class="panel sectors-compact"><h2>⏱️ SECTORES · S1 / S2 / S3</h2><p class="info">Tiempos S1, S2 y S3. La diferencia con el líder y el GAP entre pilotos aparecen juntos en el cronometraje principal.</p><div class="scroll" style="max-height:270px"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody id="sectors"><tr><td colspan="5">Sin datos de sectores.</td></tr></tbody></table></div></section>
@@ -373,8 +380,8 @@ function changeMode(mode){
  el("modeLive").classList.toggle("primary",live);el("modeHistory").classList.toggle("primary",!live);
  for(const id of ["historyYearLabel","find","historyCircuitLabel","circuit","session","load"])el(id).hidden=live;
  el("liveSummary").hidden=!live;
- if(live){el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
- else {el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
+ if(live){clearCircuitWeather("Consultando meteorología…");el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
+ else {el("weatherStrip").hidden=true;el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
 function pitStops(d){const value=d.NumberOfPitStops??d.PitStopCount??d.PitStopsCount??null;const n=Number(value);return value!==null&&value!==""&&Number.isInteger(n)&&n>=0&&n<30?String(n):"—"}
 function pitStatus(d){return d.InPit?"EN BOXES":d.PitOut?"SALIENDO":d.Retired?"RETIRADO":d.Stopped?"DETENIDO":"—"}
@@ -442,6 +449,41 @@ function radioUrl(r){
   return url.href;
  }catch(e){return ""}
 }
+function clearCircuitWeather(message){
+ const target=el("weatherStrip");
+ target.hidden=activeMode!=="live";
+ target.innerHTML='<span class="wx">'+esc(message||"Meteorología no disponible")+'</span>';
+}
+function weatherNumber(v,min,max){
+ if(v===null||v===undefined||v==="")return null;
+ const n=Number(v);
+ return Number.isFinite(n)&&n>=min&&n<=max?n:null;
+}
+function renderCircuitWeather(result){
+ if(activeMode!=="live")return;
+ if(result.status!=="fulfilled"||result.value?.vigente!==true){
+  clearCircuitWeather("Meteorología sin datos verificados");return;
+ }
+ const raw=result.value.datos?.Weather;
+ const data=raw&&typeof raw==="object"?(raw.WeatherData&&typeof raw.WeatherData==="object"?raw.WeatherData:raw):null;
+ if(!data){clearCircuitWeather("Meteorología no disponible");return}
+ const specs=[
+  ["🌡️ Ambiente",data.AirTemp??data.AirTemperature,-50,65,"°C",1],
+  ["🔥 Pista",data.TrackTemp??data.TrackTemperature,-30,85,"°C",1],
+  ["💧 Humedad",data.Humidity,0,100,"%",0],
+  ["💨 Viento",data.WindSpeed,0,100," km/h",1],
+  ["🧭 Dirección",data.WindDirection,0,360,"°",0],
+  ["☔ Lluvia",data.Rainfall,0,1,"",0]
+ ];
+ const entries=specs.map(([label,raw,min,max,unit,decimals])=>{
+  const value=weatherNumber(raw,min,max);
+  if(value===null)return "";
+  const shown=label==="☔ Lluvia"?(value>0?"Sí":"No"):value.toFixed(decimals).replace(".",",")+unit;
+  return '<span class="wx">'+esc(label)+' <strong>'+esc(shown)+'</strong></span>';
+ }).filter(Boolean);
+ el("weatherStrip").hidden=false;
+ el("weatherStrip").innerHTML=entries.length?entries.join(""):'<span class="wx">Meteorología sin valores disponibles</span>';
+}
 function renderRadios(result){
  const box=el("radios");
  if(result.status!=="fulfilled"){box.innerHTML='<div class="info">No se han podido recuperar las radios del receptor.</div>';return}
@@ -461,7 +503,7 @@ function renderRadios(result){
 async function refreshLive(){
  if(activeMode!=="live"||liveBusy)return;liveBusy=true;
  try{
- const [sr,tr,fr,rr]=await Promise.allSettled([api("/api/alternativa/status"),api("/api/alternativa/timing"),api("/api/alternativa/race-control"),api("/api/alternativa/team-radio")]);
+ const [sr,tr,fr,rr,wr]=await Promise.allSettled([api("/api/alternativa/status"),api("/api/alternativa/timing"),api("/api/alternativa/race-control"),api("/api/alternativa/team-radio"),api("/api/alternativa/weather")]);
  if(sr.status!=="fulfilled"||tr.status!=="fulfilled")throw Error("El receptor no ha confirmado estado y clasificación recientes.");
  const status=sr.value.datos||{},timing=tr.value.datos||{};
  const stamp=status.lastMessageAt;
@@ -470,7 +512,8 @@ async function refreshLive(){
  el("liveMeta").textContent="Receptor: "+(status.status||"Desconocido")+" · Último mensaje: "+(when?new Date(when).toLocaleString("es-ES"):"sin fecha")+" · Antigüedad: "+(age===null?"—":age+" s")+" · Fuente comunitaria experimental";
  el("state").textContent=fresh?"● RECEPTOR CONECTADO · DATOS RECIENTES":"● DIRECTO NO VERIFICADO";
  el("state").style.borderColor=fresh?"#35875f":"#80652e";
- if(!fresh){if(!userSelectedCircuit)unsetLiveCircuit("Sin sesión verificada: no se puede identificar el circuito.");el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
+ if(!fresh){clearCircuitWeather("Sin sesión en directo verificada");if(!userSelectedCircuit)unsetLiveCircuit("Sin sesión verificada: no se puede identificar el circuito.");el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
+ renderCircuitWeather(wr);
  syncLiveCircuit(timing,status);
  const lines=timing.Lines||{},order=Array.isArray(timing.Leaderboard)?timing.Leaderboard:[];
  const ds=order.map(id=>lines[id]).filter(d=>d&&d.RacingNumber&&/^\d+$/.test(String(d.RacingNumber)));
@@ -512,7 +555,7 @@ async function refreshLive(){
  renderTrackLimits(valid,fr.status==="fulfilled",ds);
  el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article class="fia-'+fiaTone(m)+'"><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
- }catch(error){el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
+ }catch(error){clearCircuitWeather("Meteorología no verificada");el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}
 }
 function enablePanelLayout(){

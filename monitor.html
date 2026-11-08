@@ -191,6 +191,12 @@ const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
 if(push)return "Colocar los coches al frente en este orden: "+push[1];
 const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);
 if(resume)return "Orden de reanudación: "+resume[1];
+const postRace=s.match(/^INCIDENT\s+INVOLVING\s+CAR\s+(\d+)\s+\(([^)]+)\)\s+WILL\s+BE\s+INVESTIGATED\s+AFTER\s+THE\s+RACE\s*[-–—]\s*(.+)$/i);
+if(postRace){
+ const reason=postRace[3].split(/\s*[-–—]\s*/).map(x=>x.trim()).filter(Boolean);
+ const why=reason.map(translateReason).join("; ");
+ return "Incidente del coche "+postRace[1]+" ("+postRace[2]+"): será investigado después de la carrera. Motivo: "+why+".";
+}
 const reviewed=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+REVIEWED\s+NO FURTHER INVESTIGATION\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
 if(reviewed)return "Incidente del coche "+reviewed[1]+" ("+reviewed[2]+") revisado: no habrá más investigación por salir de boxes con el semáforo rojo"+(reviewed[3]?" "+reviewed[3]:"");
 const pitIncident=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+(NOTED|UNDER INVESTIGATION)\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
@@ -267,6 +273,8 @@ function translateReason(value){
  [/^UNSAFE RELEASE$/i,"incorporación insegura desde boxes"],
  [/^TRACK LIMITS$/i,"límites de pista"],
  [/^IGNORING YELLOW FLAGS$/i,"ignorar las banderas amarillas"],
+ [/^FAILING TO FOLLOW RACE DIRECTORS?['’]? INSTRUCTIONS$/i,"incumplimiento de las instrucciones de Dirección de Carrera"],
+ [/^PRACTICE START INFRINGEMENT$/i,"infracción en el procedimiento de salida de prácticas"],
  [/^FAILURE TO FOLLOW RACE DIRECTOR.?S INSTRUCTIONS$/i,"incumplir las instrucciones de Dirección de Carrera"],
  [/^IMPEDING CAR (\d+)$/i,"obstaculizar al coche $1"],
  [/^UNSAFE REJOIN$/i,"reincorporación insegura a pista"]

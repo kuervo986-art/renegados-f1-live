@@ -4,8 +4,9 @@ import time
 from datetime import datetime, timezone
 from threading import Lock
 import requests
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from radio_transcripcion import estado_transcripcion
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -65,12 +66,7 @@ def proveedor(topic):
         return jsonify(error="El proveedor devolvió datos inválidos.",
                        proveedor_disponible=False, hora_utc=utc()), 502
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
-
-
 # Archivo de sesiones históricas: OpenF1, sin autenticación.
-from flask import request
 
 _history_cache = {}
 def historical(endpoint, params):
@@ -265,3 +261,15 @@ def alternativa_datos(topic):
                        datos=response.json())
     except (requests.RequestException,ValueError,TypeError,KeyError):
         return jsonify(error="El receptor alternativo ha fallado o sus datos no son válidos.",vigente=False),503
+
+
+@app.get("/api/radio/transcripcion")
+def radio_transcripcion():
+    data, status = estado_transcripcion(request.args.get("clip", ""))
+    response = jsonify(data)
+    response.headers["Cache-Control"] = "no-store"
+    return response, status
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))

@@ -2,3 +2,6 @@ Flask>=3.0,<4
 flask-cors>=4,<6
 gunicorn>=22,<24
 requests>=2.31,<3
+
+pywhispercpp==1.4.1
+miniaudio==1.61

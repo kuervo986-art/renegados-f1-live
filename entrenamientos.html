@@ -38,7 +38,7 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 #map3DViewport{height:clamp(275px,51vh,580px);position:relative;background:#0a1221;overflow:hidden}
 #map3DViewport canvas{display:block;width:100%;height:100%}
 #map3DTime{flex:1;min-width:120px}#map3DClock{min-width:108px;font-variant-numeric:tabular-nums;font-size:12px}
-#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
+#map3DEnvironment{margin:0;padding:4px 12px}#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}
@@ -59,12 +59,14 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 <div class="map3d-toolbar">
 <button id="map3DReplay" type="button" disabled>Repetir con datos reales</button>
 <button id="map3DDemo" type="button">Probar demostración</button>
-<button id="map3DCenter" type="button">Cámara general</button>
+<button id="map3DCenter" type="button" aria-pressed="true">Cámara general</button>
+<button id="map3DChase" type="button" aria-pressed="false" disabled>Seguir coche</button>
 <label>Piloto <select id="map3DDriver"><option value="">Vista general</option></select></label>
 <button id="map3DClose" type="button">Cerrar 3D</button>
 </div>
 <p id="map3DStatus" role="status">Preparando el circuito…</p>
 <div id="map3DViewport" aria-label="Vista tridimensional del circuito"></div>
+<p id="map3DEnvironment" class="note" hidden>Carril de boxes en azul · Edificios con alturas aproximadas · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap</a> · <a href="./las-vegas-entorno.osm.json">Datos del entorno (ODbL)</a></p>
 <div class="map3d-toolbar">
 <button id="map3DPlay" type="button" disabled>Reproducir</button>
 <label>Velocidad <select id="map3DSpeed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
@@ -83,5 +85,5 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 </main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos · Receptor comunitario y OpenF1 · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
 <script src="./marcas-circuitos.js?v=1"></script>
-<script src="./entrenamientos.js?v=5"></script>
+<script src="./entrenamientos.js?v=6"></script>
 </body></html>

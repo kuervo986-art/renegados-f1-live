@@ -485,7 +485,7 @@ async function openMap3D() {
  el("map3DButton").setAttribute("aria-expanded","true");
  el("map3DPanel").scrollIntoView({block:"start",behavior:"smooth"});
  try {
-  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=3").then(module=>module.createMap3D(el,historical));
+  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=4").then(module=>module.createMap3D(el,historical));
   map3D = await map3DLoad;
   map3D.setContext(circuit3D,replayContext);
   if (!el("map3DPanel").hidden) map3D.show();

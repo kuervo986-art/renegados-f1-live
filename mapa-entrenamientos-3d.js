@@ -46,6 +46,50 @@ function roadGeometry(curve,width,height) {
  return geometry;
 }
 
+function stripFaces(points,width) {
+ const edges=points.map((point,index)=>{
+  const direction=points[Math.min(index+1,points.length-1)].clone().sub(points[Math.max(index-1,0)]);
+  const side=new THREE.Vector3(direction.z,0,-direction.x).normalize().multiplyScalar(width/2);
+  return [point.clone().sub(side),point.clone().add(side)];
+ });
+ return edges.slice(1).map(([a,b],index)=>[...edges[index],b,a]);
+}
+
+function addLasVegas(group,data,transform) {
+ const wallColors=[0x60718b,0x596880,0x475b74,0x687790];
+ for(const [index,building] of data.buildings.entries()) {
+  const floor=building.outline.map(([x,y])=>transform(x,y));
+  const height=transform(...building.outline[0],building.height).y-floor[0].y;
+  const shape=new THREE.Shape(floor.map(point=>new THREE.Vector2(point.x,-point.z)));
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:height,bevelEnabled:false});
+  geometry.rotateX(-Math.PI/2);
+  const color=wallColors[index%wallColors.length];
+  const roof=new THREE.MeshStandardMaterial({color:0x8392a5,roughness:.95});
+  const walls=new THREE.MeshStandardMaterial({color,roughness:.95});
+  const mesh=new THREE.Mesh(geometry,[roof,walls]);
+  const top=floor.map(point=>new THREE.Vector3(point.x,height,point.z));
+  mesh.userData.faces=[
+   {vertices:top,color:"#8392a5"},
+   ...floor.map((point,i)=>{
+    const next=(i+1)%floor.length;
+    return {vertices:[point,floor[next],top[next],top[i]],color:i%2?"#576b84":"#41566e"};
+   })
+  ];
+  group.add(mesh);
+ }
+ const lane=data.pitLane.path.map(([x,y])=>transform(x,y).setY(1.35));
+ const faces=stripFaces(lane,5.5);
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute("position",new THREE.Float32BufferAttribute(faces.flatMap(([a,b,c,d])=>
+  [a,b,c,c,d,a].flatMap(point=>[point.x,point.y,point.z])),3));
+ const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0x60c6fb,side:THREE.DoubleSide}));
+ mesh.userData.faces=faces.map(vertices=>({vertices,color:"#60c6fb"}));
+ group.add(mesh);
+ const label=textSprite("BOXES");
+ label.position.copy(lane[Math.floor(lane.length/2)]); label.position.y+=17;
+ group.add(label);
+}
+
 function carsInWindow(raw,start,normalize) {
  const samples = new Map();
  for (const row of validPositions(raw)) {
@@ -113,7 +157,7 @@ function disposeGroup(group) {
  const materials=new Set();
  group.traverse(item=>{
   item.geometry?.dispose();
-  if (item.material) materials.add(item.material);
+  for (const material of [item.material].flat()) if(material) materials.add(material);
  });
  for (const material of materials) {
   material.map?.dispose();
@@ -123,7 +167,7 @@ function disposeGroup(group) {
 }
 
 // Dibuja la misma escena en perspectiva cuando el navegador no ofrece WebGL.
-function canvasRenderer(track,fleet) {
+function canvasRenderer(track,fleet,environment) {
  const canvas=document.createElement("canvas");
  const ctx=canvas.getContext("2d");
  const vector=new THREE.Vector3();
@@ -135,6 +179,22 @@ function canvasRenderer(track,fleet) {
   vector.set(x,y,z).applyMatrix4(object.matrixWorld).project(camera);
   return {x:(vector.x+1)*width/2,y:(1-vector.y)*height/2,z:vector.z};
  }
+ function clipped(vertices, camera) {
+  const boundary=-camera.near-1;
+  const view=vertices.map(point=>point.clone().applyMatrix4(camera.matrixWorldInverse));
+  const pane=[];
+  for(let i=0;i<view.length;i++) {
+   const a=view[(i+view.length-1)%view.length],b=view[i];
+   if ((a.z<=boundary)!==(b.z<=boundary)) pane.push(a.clone().lerp(b,(boundary-a.z)/(b.z-a.z)));
+   if(b.z<=boundary) pane.push(b);
+  }
+  if(pane.length<3)return [];
+  return pane.map(point=>{
+   point.applyMatrix4(camera.projectionMatrix);
+   return {x:(point.x+1)*width/2,y:(1-point.y)*height/2,z:point.z};
+  });
+ }
+
  function trace(points) {
   for (const [index,point] of points.entries()) {
    if (index) ctx.lineTo(point.x,point.y);
@@ -160,7 +220,7 @@ function canvasRenderer(track,fleet) {
    background.addColorStop(0,"#172737"); background.addColorStop(1,"#0a1322");
    ctx.fillStyle=background; ctx.fillRect(0,0,width,height);
 
-   const labels=[];
+   const labels=[],faces=[];
    for (const mesh of track.children) {
     if (mesh.isSprite) {
      labels.push([project(0,0,0,mesh,camera),mesh.material.map.image]);
@@ -175,6 +235,17 @@ function canvasRenderer(track,fleet) {
      continue;
     }
     if (attr.count<48) continue;
+    if(camera.userData.chase) {
+     ctx.fillStyle=mesh.material.color.getStyle();
+     ctx.beginPath();
+     const v=i=>new THREE.Vector3(attr.getX(i),attr.getY(i),attr.getZ(i));
+     for(let i=0;i+5<attr.count;i+=4) {
+      const points=clipped([v(i),v(i+1),v(i+5),v(i+4)],camera);
+      if(points.length)trace(points);
+     }
+     ctx.fill();
+     continue;
+    }
     const left=[],right=[];
     for (let i=0;i<attr.count;i+=4) {
      left.push(project(attr.getX(i),attr.getY(i),attr.getZ(i),mesh,camera));
@@ -185,7 +256,19 @@ function canvasRenderer(track,fleet) {
     ctx.fill("evenodd");
    }
 
-   const faces=[];
+   for(const item of environment.children) {
+    if(item.isSprite) {
+     labels.push([project(0,0,0,item,camera),item.material.map.image]);
+     continue;
+    }
+    for(const face of item.userData.faces) {
+     const points=clipped(face.vertices,camera);
+     if(!points.length||
+        points.every(p=>p.x<0)||points.every(p=>p.x>width)||
+        points.every(p=>p.y<0)||points.every(p=>p.y>height)) continue;
+     faces.push({points,color:face.color,depth:points.reduce((sum,point)=>sum+point.z,0)/points.length});
+    }
+   }
    for (const car of fleet.children) {
     if (!car.visible) continue;
     for (const mesh of car.children) {
@@ -219,10 +302,10 @@ function canvasRenderer(track,fleet) {
 export function createMap3D(el,historical) {
  const view=el("map3DViewport");
  const info=el("map3DStatus"), timeline=el("map3DTime"), playButton=el("map3DPlay"), drivers=el("map3DDriver");
- const track=new THREE.Group(), fleet=new THREE.Group();
+ const track=new THREE.Group(), fleet=new THREE.Group(), environment=new THREE.Group();
  const canvas=document.createElement("canvas");
  const context=canvas.getContext("webgl2",{antialias:true})??canvas.getContext("webgl",{antialias:true});
- const renderer=context ? new THREE.WebGLRenderer({canvas,context,antialias:true}) : canvasRenderer(track,fleet);
+ const renderer=context ? new THREE.WebGLRenderer({canvas,context,antialias:true}) : canvasRenderer(track,fleet,environment);
  renderer.setClearColor(0x101a29);
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
  view.replaceChildren(renderer.domElement);
@@ -236,7 +319,7 @@ export function createMap3D(el,historical) {
  scene.add(new THREE.HemisphereLight(0xddeeff,0x455064,2.3));
  const light=new THREE.DirectionalLight(0xffe4d0,2.7);
  light.position.set(220,380,160); scene.add(light);
- scene.add(track,fleet);
+ scene.add(track,fleet,environment);
  const surface=new THREE.Mesh(new THREE.PlaneGeometry(2300,2300),new THREE.MeshStandardMaterial({color:0x182936}));
  surface.rotation.x=-Math.PI/2; surface.position.y=-3; scene.add(surface);
  const grid=new THREE.GridHelper(1800,24,0x405466,0x293e50);
@@ -244,11 +327,22 @@ export function createMap3D(el,historical) {
  const cars=new Map();
  let circuit, archived, previousContext, staticKey, mode="", curve, samples, duration=0, time=0, demoSense=1;
  let frame=0, lastFrame=0, visible=false, playing=false, job=0, previousFocus;
- let fallback;
+ let fallback, vegasData;
+ const chaseButton=el("map3DChase"), centerButton=el("map3DCenter");
+ const environmentNote=el("map3DEnvironment");
+ chaseButton.disabled=true;
+
+ function setChase(active) {
+  camera.userData.chase=active;
+  chaseButton.setAttribute("aria-pressed",String(active));
+  centerButton.setAttribute("aria-pressed",String(!active));
+  controls.enabled=!active;
+  previousFocus=null;
+ }
 
  function center() {
   drivers.value="";
-  previousFocus=null;
+  setChase(false);
   camera.position.set(390,840,1110);
   controls.target.set(0,0,0);
   controls.update();
@@ -266,6 +360,8 @@ export function createMap3D(el,historical) {
 
  function setTrack(points,id,lap=false) {
   disposeGroup(track);
+  disposeGroup(environment);
+  environmentNote.hidden=true;
   curve=buildTrack(points);
   for (const [width,height,color] of [[28,0,0x546277],[20,.22,0x293749]]) {
    const material=new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.95});
@@ -313,7 +409,8 @@ export function createMap3D(el,historical) {
    fleet.add(car);
    drivers.add(new Option(name||id,id));
   }
-  previousFocus=null;
+  chaseButton.disabled=!cars.size;
+  setChase(false);
  }
 
  function setPlayback(seconds) {
@@ -346,7 +443,8 @@ export function createMap3D(el,historical) {
    const course=await getCircuit();
    if (request!==job) return;
    const radians=course.points[0][1]*Math.PI/180;
-   const points=course.points.map(([x,y])=>new THREE.Vector3(x*Math.cos(radians)*10000,0,-y*10000));
+   const geographic=(x,y,meters=0)=>new THREE.Vector3(x*Math.cos(radians)*10000,meters*.08983,-y*10000);
+   const points=course.points.map(([x,y])=>geographic(x,y));
    const project=normalizer(points);
    const marks=setTrack(points.map(project),course.id);
    staticKey=course;
@@ -358,8 +456,19 @@ export function createMap3D(el,historical) {
     (marks.finish?" Damero: meta aproximada.":" Meta sin referencia disponible.")+" Flechas: sentido de marcha.";
    if (demo) { playing=true; syncTime(); }
    center();
+   if(course.id==="us-2023") {
+    vegasData ??= fetch("./las-vegas-entorno.osm.json?v=1",{signal:AbortSignal.timeout(10000)}).then(response=>{
+     if(!response.ok)throw Error("Entorno no disponible");
+     return response.json();
+    }).catch(()=>{vegasData=null;return null;});
+    const data=await vegasData;
+    if(request===job && data) {
+     addLasVegas(environment,data,(x,y,z)=>project(geographic(x,y,z)));
+     environmentNote.hidden=false;
+    }
+   }
   } catch {
-   if (request===job) info.textContent="No se pudo cargar el trazado del circuito.";
+   if (request===job) info.textContent=curve?"No se pudo cargar el entorno de Las Vegas.":"No se pudo cargar el trazado del circuito.";
   }
  }
 
@@ -437,7 +546,14 @@ export function createMap3D(el,historical) {
    index++;
   }
   const focus=cars.get(drivers.value);
-  if (focus?.visible) {
+  if (focus?.visible && camera.userData.chase) {
+   const heading=new THREE.Vector3(Math.sin(focus.rotation.y),0,Math.cos(focus.rotation.y));
+   const desired=focus.position.clone().addScaledVector(heading,-95).add(new THREE.Vector3(0,63,0));
+   const target=focus.position.clone().addScaledVector(heading,30);
+   camera.position.lerp(desired,previousFocus?.equals(focus.position)?1:.19);
+   controls.target.lerp(target,previousFocus?.equals(focus.position)?1:.25);
+   previousFocus=focus.position.clone();
+  } else if (focus?.visible) {
    if (previousFocus) camera.position.add(focus.position.clone().sub(previousFocus));
    controls.target.copy(focus.position);
    previousFocus=focus.position.clone();
@@ -446,7 +562,20 @@ export function createMap3D(el,historical) {
   frame=requestAnimationFrame(draw);
  }
 
- el("map3DCenter").onclick=center;
+ centerButton.onclick=center;
+ chaseButton.onclick=()=>{
+  if(!cars.size)return;
+  if(!drivers.value) drivers.value=cars.keys().next().value;
+  setChase(true);
+  const car=cars.get(drivers.value);
+  if (car?.visible) {
+   const heading=new THREE.Vector3(Math.sin(car.rotation.y),0,Math.cos(car.rotation.y));
+   camera.position.copy(car.position).addScaledVector(heading,-95).add(new THREE.Vector3(0,63,0));
+   controls.target.copy(car.position).addScaledVector(heading,30);
+   controls.update();
+  }
+ };
+ drivers.onchange=()=>{if(!drivers.value)center();};
  el("map3DDemo").onclick=()=>void staticTrack(true);
  el("map3DReplay").onclick=realReplay;
  playButton.onclick=()=>{

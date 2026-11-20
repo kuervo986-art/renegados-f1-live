@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RENEGADOS RACING LIVE · Clasificación</title>
+<title>RENEGADOS RACING LIVE · Entrenamientos</title>
 <style>
 :root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#090d14;color:#eef3fc}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1e2e43,#090d14 75%)}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 2%;background:#151f2f;border-bottom:2px solid #f14b63}
@@ -23,98 +23,34 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 #fia article.fia-white .flag{color:#e9f0ff}
 #fia article.fia-black .flag{color:#c0c7d3}
 #fia article.fia-checkered .flag{color:#e4e8f1}
+button[aria-pressed="true"]{border-color:#ff6b7b;background:#512632}
+select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;border-radius:8px;padding:8px}
+#historyControls[hidden]{display:none}.extras{display:grid;gap:12px}.scroll{max-height:680px}
+#map[hidden]{display:none}#map{display:block;width:100%;height:125px}#map path{fill:none;stroke:#ff7386;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+#weather,#radios,#limits,#laps {margin:10px 12px;color:#d9e8fa;font-size:12px}
+#radios,#limits,#laps{max-height:225px;overflow:auto}#radios p,#limits p{margin:6px 0}
+#fia{max-height:280px}.scroll td{padding-top:6px;padding-bottom:6px}
 </style></head><body>
-<header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE ENTRENAMIENTOS · FP1 / FP2 / FP3</small></div><nav><a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
+<header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE ENTRENAMIENTOS · FP1 / FP2 / FP3</small></div><nav><a href="./">Inicio</a> · <a href="./monitor.html">🏁 Volver al monitor de carrera</a></nav></header>
 <main>
-<div class="toolbar"><span class="tag">🛠️ Entrenamientos</span><button id="refresh">Actualizar ahora</button><span class="status" id="status">Esperando datos…</span></div>
+<div class="toolbar"><button id="liveMode" aria-pressed="true">En directo</button><button id="historyMode" aria-pressed="false">Histórico</button><button id="refresh">Actualizar ahora</button><span class="status" id="status" role="status">Esperando datos…</span></div>
+<div id="historyControls" class="toolbar" hidden>
+<label>Temporada <select id="year"></select></label>
+<label>Gran Premio <select id="meeting" disabled></select></label>
+<label>Sesión <select id="session" disabled></select></label>
+<a id="officialResults" href="https://www.formula1.com/en/results">Resultados oficiales</a>
+</div>
 <div class="phases"><div class="phase" id="phase1"><strong>FP1</strong><p>Entrenamientos libres 1</p></div><div class="phase" id="phase2"><strong>FP2</strong><p>Entrenamientos libres 2</p></div><div class="phase" id="phase3"><strong>FP3</strong><p>Entrenamientos libres 3</p></div></div>
-<p id="phaseStatus">Se indicará la sesión activa únicamente cuando el receptor la identifique. Los entrenamientos no tienen eliminaciones.</p>
+<p id="phaseStatus">Consultando el estado de la sesión…</p>
 <div class="layout">
-<section class="panel"><h2>⏱️ ENTRENAMIENTOS · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>DIFERENCIA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>VUELTAS</th></tr></thead><tbody id="timing"><tr><td colspan="10">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">Orden de tiempos de la sesión, sin eliminaciones. Las diferencias se calculan a partir de las mejores vueltas recibidas.</p></section>
-<section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
-</main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
-<script>
-function fiaTone(e){
- const flag=String(e.flag||e.Flag||"").toUpperCase().replace(/[\s-]+/g,"_");
- const msg=String(e.message||e.Message||e.text||"").toUpperCase();
- const cat=String(e.category||e.Category||"").toUpperCase();
- if(/CHEQUERED|CHECKERED|CUADROS/.test(flag+" "+msg))return "checkered";
- if(/DOUBLE_YELLOW|YELLOW/.test(flag)||/\b(?:DOUBLE\s+YELLOW|YELLOW\s+FLAG|BANDERA\s+AMARILLA|BANDERAS\s+AMARILLAS)\b/.test(msg))return "yellow";
- if(/BLACK_AND_WHITE|BLACK_WHITE|BLACK\/WHITE/.test(flag+" "+msg))return "black";
- if(/\bRED\b/.test(flag)||/\b(?:RED\s+FLAG|BANDERA\s+ROJA)\b/.test(msg))return "red";
- if(/\bGREEN\b|\bCLEAR\b/.test(flag)||/\b(?:GREEN\s+FLAG|BANDERA\s+VERDE|TRACK\s+CLEAR|PISTA\s+DESPEJADA)\b/.test(msg)||(cat==="TRACK"&&/\bCLEAR\b/.test(msg)))return "green";
- if(/\bBLUE\b/.test(flag)||/\b(?:BLUE\s+FLAG|BANDERA\s+AZUL)\b/.test(msg))return "blue";
- if(/\bWHITE\b/.test(flag)||/\b(?:WHITE\s+FLAG|BANDERA\s+BLANCA)\b/.test(msg))return "white";
- if(/\bBLACK\b/.test(flag)||/\b(?:BLACK\s+FLAG|BANDERA\s+NEGRA)\b/.test(msg))return "black";
- if(/\b(?:SAFETY\s+CAR|VIRTUAL\s+SAFETY\s+CAR|COCHE\s+DE\s+SEGURIDAD)\b/.test(msg))return "yellow";
- return "other";
-}
-
-"use strict";
-const BASE="https://renegados-f1-live.onrender.com",get=id=>document.getElementById(id);
-const esc=x=>String(x??"—").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-let busy=false;
-async function req(route){
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
- try{const r=await fetch(BASE+route,{signal:controller.signal,cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}
- finally{clearTimeout(timeout)}
-}
-function seconds(v){if(typeof v==="number")return Number.isFinite(v)&&v>0?v:null;const s=String(v||"").trim();if(!s||s==="—")return null;const p=s.split(":").map(Number);if(p.some(x=>!Number.isFinite(x)))return null;if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2];return null}
-function fmt(v){return typeof v==="number"&&Number.isFinite(v)?("+"+v.toFixed(3)):"—"}
-function practicePart(session){
- const parts=[session.Name,session.SessionName,session.Type,session.SessionType].filter(Boolean).map(String).join(" ");
- if(!/(?:practice|entrenamiento|\bFP[123]\b|\bP[123]\b|free practice)/i.test(parts))return 0;
- const match=parts.match(/(?:FP|practice|entrenamientos? libres?|\bP)\s*([123])\b/i);
- return match?Number(match[1]):0;
-}
-function bestTime(d){
- const v=d.BestLapTime?.Value??d.BestLapTime;
- return typeof v==="string"||typeof v==="number"?v:"";
-}
-function tyre(d){
- const items=d.Stints?Object.values(d.Stints):[];
- const last=items[items.length-1]||{};
- const t=String(last.Compound||d.Compound||"").toUpperCase();
- return ({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[t]||"—"
-}
-function formatFia(x){
- const s=String(x||"");
- return s.replace(/^GREEN FLAG/i,"Bandera verde").replace(/^RED FLAG/i,"Bandera roja").replace(/^YELLOW IN TRACK SECTOR (\d+)/i,"Bandera amarilla en sector $1").replace(/^CLEAR IN TRACK SECTOR (\d+)/i,"Pista despejada en sector $1").replace(/^SESSION (STARTED|ENDED|SUSPENDED|RESUMED)/i,(_,v)=>({STARTED:"Sesión iniciada",ENDED:"Sesión terminada",SUSPENDED:"Sesión suspendida",RESUMED:"Sesión reanudada"})[v]).replace(/^CHEQUERED FLAG/i,"Bandera a cuadros");
-}
-async function refresh(){
- if(busy)return;busy=true;
- try{
- const [s,t,f]=await Promise.allSettled([req("/api/alternativa/status"),req("/api/alternativa/timing"),req("/api/alternativa/race-control")]);
- if(s.status!=="fulfilled"||t.status!=="fulfilled")throw Error("Sin conexión verificada con el cronometraje.");
- const status=s.value.datos||{},data=t.value.datos||{};
- const age=(Date.now()-Date.parse(status.lastMessageAt||""))/1000;
- const recent=s.value.vigente===true&&t.value.vigente===true&&status.isConnected===true&&Number.isFinite(age)&&age>=0&&age<90;
- if(!recent)throw Error("El receptor no tiene datos recientes verificados.");
- const session=data.Session||{},name=String(session.Name||session.SessionName||session.Type||session.SessionType||"");
- const part=practicePart(session);
- const namedPractice=/(?:practice|entrenamiento|\bFP[123]\b|free practice)/i.test([session.Name,session.SessionName,session.Type,session.SessionType].filter(Boolean).join(" "));
- get("status").textContent="Receptor conectado · "+(name||"Sesión no identificada")+" · actualización hace "+Math.round(age)+" s";
- for(let i=1;i<=3;i++)get("phase"+i).classList.toggle("on",part===i);
- get("phaseStatus").textContent=!namedPractice?"El receptor no confirma una sesión de entrenamientos activa. No se muestran tiempos de otras sesiones.":part?"FP"+part+" identificada · mejores vueltas y sectores en directo.":"Entrenamientos detectados; el receptor todavía no identifica FP1, FP2 o FP3.";
- if(!namedPractice){
-  get("timing").innerHTML='<tr><td colspan="10">Esperando datos verificados de entrenamientos libres (FP1, FP2 o FP3).</td></tr>';
-  get("fia").innerHTML='<p class="note">Sin mensajes de entrenamientos verificados.</p>';
-  return;
- }
- const lines=data.Lines||{},ids=Array.isArray(data.Leaderboard)?data.Leaderboard:Object.keys(lines);
- const drivers=ids.map(id=>lines[id]).filter(d=>d&&/^\d+$/.test(String(d.RacingNumber||"")));
- const rows=drivers.map((d,i)=>({...d,_pos:Number(d.Position)||i+1,_best:bestTime(d),_seconds:seconds(bestTime(d))})).sort((a,b)=>a._pos-b._pos);
- const valid=rows.map(r=>r._seconds).filter(v=>v!==null),leader=valid.length?Math.min(...valid):null;
- get("timing").innerHTML=rows.length?rows.map(d=>{
-  const diff=d._seconds!==null&&leader!==null?fmt(d._seconds-leader):"—";
-  const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||""))?"#"+d.TeamColour:"#8294b1";
-  const laps=d.NumberOfLaps??d.Laps??"—";
-  return '<tr data-team-color="1" style="--team-color:'+color+'"><td>'+esc(d._pos)+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(d._best||"—")+'</td><td>'+esc(diff)+'</td><td>'+esc(tyre(d))+'</td>'+[0,1,2].map(j=>'<td>'+esc(d.Sectors?.[j]?.Value||"—")+'</td>').join("")+'<td>'+esc(laps)+'</td></tr>';
- }).join(""):'<tr><td colspan="10">Todavía no se han recibido pilotos para estos entrenamientos.</td></tr>';
- const raw=f.status==="fulfilled"?(f.value.datos||{}):{},events=raw.RaceControl||raw.Messages||[];
- get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.Utc||e.timestamp||"")+'</time><div class="flag">'+esc(({green:'Bandera verde',yellow:'Bandera amarilla',red:'Bandera roja',blue:'Bandera azul',white:'Bandera blanca',black:'Bandera negra / advertencia',checkered:'Bandera a cuadros'})[fiaTone(e)]||'Dirección de carrera')+'</div>'+esc(formatFia(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
- }catch(e){get("status").textContent="Sin datos actuales confirmados: "+e.message;get("timing").innerHTML='<tr><td colspan="10">Esperando una sesión de entrenamientos con datos reales.</td></tr>';get("fia").innerHTML='<p class="note">Avisos no verificados.</p>'}
- finally{busy=false}
-}
-get("refresh").onclick=refresh;refresh();setInterval(refresh,5000);
-</script></body></html>
+<section class="panel"><h2>⏱️ ENTRENAMIENTOS · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>ÚLTIMA VUELTA</th><th>AL PRIMERO</th><th>AL ANTERIOR</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>VUELTAS</th><th>BOXES</th><th>ESTADO</th><th>KM/H</th></tr></thead><tbody id="timing"><tr><td colspan="15">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">S1–S3 muestran los últimos sectores recibidos en directo y los de la mejor vuelta en el histórico.</p></section>
+<aside class="extras"><section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section>
+<section class="panel"><h2>CIRCUITO Y METEOROLOGÍA</h2><svg id="map" viewBox="0 0 400 140" aria-label="Trazado del circuito" hidden><path id="track"></path></svg><p id="mapNote" class="note">Circuito sin identificar.</p><p id="weather">Sin datos meteorológicos.</p></section>
+<section class="panel"><h2>LÍMITES DE PISTA</h2><div id="limits">Sin datos disponibles.</div></section>
+<section class="panel"><h2>RADIOS DE EQUIPO</h2><div id="radios">Sin grabaciones disponibles.</div></section>
+<section id="lapsPanel" class="panel" hidden><h2>VUELTAS POR PILOTO</h2><div id="laps"><label>Piloto <select id="lapDriver"></select></label><table><thead><tr><th>VUELTA</th><th>TIEMPO</th><th>S1</th><th>S2</th><th>S3</th><th>NEUM.</th></tr></thead><tbody id="lapTimes"></tbody></table></div></section>
+</aside></div>
+</main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos · Receptor comunitario y OpenF1 · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
+<script src="./f1-es.js?v=1"></script>
+<script src="./entrenamientos.js?v=1"></script>
+</body></html>

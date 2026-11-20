@@ -33,23 +33,8 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 <section class="panel"><h2>⏱️ CLASIFICACIÓN · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>DIFERENCIA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>ESTADO</th></tr></thead><tbody id="timing"><tr><td colspan="10">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">Las posiciones de riesgo en Q1 y Q2 son provisionales hasta confirmarse las eliminaciones. Sin GPS ni tiempos inventados.</p></section>
 <section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de clasificación experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
+<script src="./f1-es.js?v=1"></script>
 <script>
-function fiaTone(e){
- const flag=String(e.flag||e.Flag||"").toUpperCase().replace(/[\s-]+/g,"_");
- const msg=String(e.message||e.Message||e.text||"").toUpperCase();
- const cat=String(e.category||e.Category||"").toUpperCase();
- if(/CHEQUERED|CHECKERED|CUADROS/.test(flag+" "+msg))return "checkered";
- if(/DOUBLE_YELLOW|YELLOW/.test(flag)||/\b(?:DOUBLE\s+YELLOW|YELLOW\s+FLAG|BANDERA\s+AMARILLA|BANDERAS\s+AMARILLAS)\b/.test(msg))return "yellow";
- if(/BLACK_AND_WHITE|BLACK_WHITE|BLACK\/WHITE/.test(flag+" "+msg))return "black";
- if(/\bRED\b/.test(flag)||/\b(?:RED\s+FLAG|BANDERA\s+ROJA)\b/.test(msg))return "red";
- if(/\bGREEN\b|\bCLEAR\b/.test(flag)||/\b(?:GREEN\s+FLAG|BANDERA\s+VERDE|TRACK\s+CLEAR|PISTA\s+DESPEJADA)\b/.test(msg)||(cat==="TRACK"&&/\bCLEAR\b/.test(msg)))return "green";
- if(/\bBLUE\b/.test(flag)||/\b(?:BLUE\s+FLAG|BANDERA\s+AZUL)\b/.test(msg))return "blue";
- if(/\bWHITE\b/.test(flag)||/\b(?:WHITE\s+FLAG|BANDERA\s+BLANCA)\b/.test(msg))return "white";
- if(/\bBLACK\b/.test(flag)||/\b(?:BLACK\s+FLAG|BANDERA\s+NEGRA)\b/.test(msg))return "black";
- if(/\b(?:SAFETY\s+CAR|VIRTUAL\s+SAFETY\s+CAR|COCHE\s+DE\s+SEGURIDAD)\b/.test(msg))return "yellow";
- return "other";
-}
-
 "use strict";
 const BASE="https://renegados-f1-live.onrender.com",get=id=>document.getElementById(id);
 const esc=x=>String(x??"—").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -79,10 +64,6 @@ function tyre(d){
  const t=String(last.Compound||d.Compound||"").toUpperCase();
  return ({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[t]||"—"
 }
-function formatFia(x){
- const s=String(x||"");
- return s.replace(/^GREEN FLAG/i,"Bandera verde").replace(/^RED FLAG/i,"Bandera roja").replace(/^YELLOW IN TRACK SECTOR (\d+)/i,"Bandera amarilla en sector $1").replace(/^CLEAR IN TRACK SECTOR (\d+)/i,"Pista despejada en sector $1").replace(/^SESSION (STARTED|ENDED|SUSPENDED|RESUMED)/i,(_,v)=>({STARTED:"Sesión iniciada",ENDED:"Sesión terminada",SUSPENDED:"Sesión suspendida",RESUMED:"Sesión reanudada"})[v]).replace(/^CHEQUERED FLAG/i,"Bandera a cuadros");
-}
 async function refresh(){
  if(busy)return;busy=true;
  try{
@@ -94,7 +75,7 @@ async function refresh(){
  if(!recent)throw Error("El receptor no tiene datos recientes verificados.");
  const session=data.Session||{},name=String(session.Name||session.SessionName||session.Type||session.SessionType||"");
  const isQual=/qualif|shootout/i.test(name),phase=phaseFrom(session);
- get("status").textContent="Receptor conectado · "+(name||"Sesión no identificada")+" · actualización hace "+Math.round(age)+" s";
+ get("status").textContent="Receptor conectado · "+nombreSesion(name)+" · actualización hace "+Math.round(age)+" s";
  for(let i=1;i<=3;i++){get("phase"+i).classList.toggle("on",phase===i);get("info"+i).textContent=phase===i?"Fase confirmada":phase>i?"Fase anterior":"Sin confirmar"}
  get("phaseStatus").textContent=!isQual?"El receptor no identifica una clasificación activa. No se muestran eliminaciones.":phase===0?"Clasificación identificada; fase Q1/Q2/Q3 todavía no confirmada por el receptor.":"Q"+phase+" identificada. La zona de eliminación, si se marca, es provisional.";
  const lines=data.Lines||{},ids=Array.isArray(data.Leaderboard)?data.Leaderboard:Object.keys(lines);
@@ -110,7 +91,7 @@ async function refresh(){
  return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger?'danger':'')+'"><td>'+esc(d._pos)+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(d._best?.Value||d._best||"—")+'</td><td>'+esc(diff)+'</td><td>'+esc(tyre(d))+'</td>'+[0,1,2].map(j=>'<td>'+esc(d.Sectors?.[j]?.Value||"—")+'</td>').join("")+'<td>'+esc(state)+'</td></tr>';
  }).join(""):'<tr><td colspan="10">Todavía no se han recibido pilotos para esta sesión.</td></tr>';
  const raw=f.status==="fulfilled"?(f.value.datos||{}):{},events=raw.RaceControl||raw.Messages||[];
- get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.Utc||e.timestamp||"")+'</time><div class="flag">'+esc(({green:'Bandera verde',yellow:'Bandera amarilla',red:'Bandera roja',blue:'Bandera azul',white:'Bandera blanca',black:'Bandera negra / advertencia',checkered:'Bandera a cuadros'})[fiaTone(e)]||'Dirección de carrera')+'</div>'+esc(formatFia(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
+ get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.Utc||e.timestamp||"")+'</time><div class="flag">'+esc(({green:'Bandera verde',yellow:'Bandera amarilla',red:'Bandera roja',blue:'Bandera azul',white:'Bandera blanca',black:'Bandera negra / advertencia',checkered:'Bandera a cuadros'})[fiaTone(e)]||'Dirección de carrera')+'</div>'+esc(translate(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
  }catch(e){get("status").textContent="Sin datos actuales confirmados: "+e.message;get("timing").innerHTML='<tr><td colspan="10">Esperando una sesión de clasificación con datos reales.</td></tr>';get("fia").innerHTML='<p class="note">Avisos no verificados.</p>'}
  finally{busy=false}
 }

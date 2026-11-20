@@ -115,10 +115,95 @@ function disposeGroup(group) {
  group.clear();
 }
 
+// Dibuja la misma escena en perspectiva cuando el navegador no ofrece WebGL.
+function canvasRenderer(track,fleet) {
+ const canvas=document.createElement("canvas");
+ const ctx=canvas.getContext("2d");
+ const vector=new THREE.Vector3();
+ const corners=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+ const sides=[[0,1,2,3],[4,7,6,5],[0,4,5,1],[3,2,6,7],[0,3,7,4],[1,5,6,2]];
+ let width,height,ratio=1;
+
+ function project(x,y,z,object,camera) {
+  vector.set(x,y,z).applyMatrix4(object.matrixWorld).project(camera);
+  return {x:(vector.x+1)*width/2,y:(1-vector.y)*height/2,z:vector.z};
+ }
+ function trace(points) {
+  for (const [index,point] of points.entries()) {
+   if (index) ctx.lineTo(point.x,point.y);
+   else ctx.moveTo(point.x,point.y);
+  }
+  ctx.closePath();
+ }
+
+ return {
+  domElement:canvas,
+  setClearColor(){},
+  setPixelRatio(value){ratio=value;},
+  setSize(w,h){
+   width=w; height=h;
+   canvas.width=Math.round(w*ratio); canvas.height=Math.round(h*ratio);
+   ctx.setTransform(ratio,0,0,ratio,0,0);
+  },
+  render(scene,camera){
+   if (!width||!height) return;
+   camera.updateMatrixWorld();
+   scene.updateMatrixWorld();
+   const background=ctx.createLinearGradient(0,0,0,height);
+   background.addColorStop(0,"#172737"); background.addColorStop(1,"#0a1322");
+   ctx.fillStyle=background; ctx.fillRect(0,0,width,height);
+
+   for (const mesh of track.children) {
+    const attr=mesh.geometry.getAttribute("position");
+    if (attr.count<48) continue;
+    const left=[],right=[];
+    for (let i=0;i<attr.count;i+=4) {
+     left.push(project(attr.getX(i),attr.getY(i),attr.getZ(i),mesh,camera));
+     right.push(project(attr.getX(i+1),attr.getY(i+1),attr.getZ(i+1),mesh,camera));
+    }
+    ctx.beginPath(); trace(left); trace(right.reverse());
+    ctx.fillStyle=mesh.material.color.getStyle();
+    ctx.fill("evenodd");
+   }
+
+   const faces=[], labels=[];
+   for (const car of fleet.children) {
+    if (!car.visible) continue;
+    for (const mesh of car.children) {
+     if (mesh.isSprite) {
+      labels.push([project(0,0,0,mesh,camera),mesh.material.map.image]);
+      continue;
+     }
+     const {width:w,height:h,depth:d}=mesh.geometry.parameters;
+     const vertices=corners.map(([x,y,z])=>project(x*w/2,y*h/2,z*d/2,mesh,camera));
+     for (const [index,side] of sides.entries()) {
+      const points=side.map(i=>vertices[i]);
+      if (points.some(point=>Math.abs(point.z)>1)) continue;
+      faces.push({points,color:mesh.material.color.getStyle(),shade:[.25,.16,.35,0,.22,.10][index],
+       depth:points.reduce((sum,point)=>sum+point.z,0)/4});
+     }
+    }
+   }
+   faces.sort((a,b)=>b.depth-a.depth);
+   for (const face of faces) {
+    ctx.beginPath(); trace(face.points);
+    ctx.fillStyle=face.color; ctx.fill();
+    if (face.shade) {ctx.fillStyle="rgba(0,0,0,"+face.shade+")";ctx.fill();}
+   }
+   for (const [point,label] of labels) {
+    if (Math.abs(point.z)<=1) ctx.drawImage(label,point.x-21,point.y-16,42,18);
+   }
+  }
+ };
+}
+
 export function createMap3D(el,historical) {
  const view=el("map3DViewport");
  const info=el("map3DStatus"), timeline=el("map3DTime"), playButton=el("map3DPlay"), drivers=el("map3DDriver");
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+ const track=new THREE.Group(), fleet=new THREE.Group();
+ const canvas=document.createElement("canvas");
+ const context=canvas.getContext("webgl2",{antialias:true})??canvas.getContext("webgl",{antialias:true});
+ const renderer=context ? new THREE.WebGLRenderer({canvas,context,antialias:true}) : canvasRenderer(track,fleet);
  renderer.setClearColor(0x101a29);
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
  view.replaceChildren(renderer.domElement);
@@ -132,7 +217,6 @@ export function createMap3D(el,historical) {
  scene.add(new THREE.HemisphereLight(0xddeeff,0x455064,2.3));
  const light=new THREE.DirectionalLight(0xffe4d0,2.7);
  light.position.set(220,380,160); scene.add(light);
- const track=new THREE.Group(), fleet=new THREE.Group();
  scene.add(track,fleet);
  const surface=new THREE.Mesh(new THREE.PlaneGeometry(2300,2300),new THREE.MeshStandardMaterial({color:0x182936}));
  surface.rotation.x=-Math.PI/2; surface.position.y=-3; scene.add(surface);

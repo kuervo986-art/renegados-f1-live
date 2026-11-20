@@ -3,36 +3,28 @@ import {env,pipeline} from "https://cdn.jsdelivr.net/npm/@huggingface/transforme
 env.allowLocalModels=false;
 env.backends.onnx.wasm.numThreads=1;
 
-let recognize,translate;
-const progress=(id,message)=>self.postMessage({id,message});
-
-async function processRadio({id,pcm}) {
+self.onmessage=async({data:{original,reviewed}})=>{
+ let translation=reviewed??"";
  try {
-  if(!recognize) {
-   progress(id,"Preparando el modelo de voz. La primera carga puede tardar…");
-   recognize=await pipeline("automatic-speech-recognition","Xenova/whisper-base.en",{dtype:"q8"});
+  if(!translation) {
+   self.postMessage({message:"Traduciendo al español…"});
+   const translate=await pipeline("translation","Xenova/opus-mt-en-es",{dtype:"q8"});
+   try {
+    const [{translation_text}]=await translate(original,{max_new_tokens:256});
+    translation=translation_text?.trim()??"";
+   } finally {
+    await translate.dispose();
+   }
+   if(!translation) throw Error("Traducción vacía");
   }
-  progress(id,"Transcribiendo la radio…");
-  const {text}=await recognize(pcm,{chunk_length_s:25,stride_length_s:4});
-  if(!text?.trim()||!/[a-z]{2}/i.test(text)) {
-   self.postMessage({id,error:"No se reconocen palabras claras en este clip."});
-   return;
-  }
-  if(!translate) {
-   progress(id,"Preparando el traductor al español…");
-   translate=await pipeline("translation","Xenova/opus-mt-en-es",{dtype:"q8"});
-  }
-  progress(id,"Traduciendo al español…");
-  const [{translation_text}]=await translate(text.trim(),{max_new_tokens:256});
-  if(!translation_text?.trim()) throw Error("Traducción vacía");
-  self.postMessage({id,translation:translation_text.trim()});
+  self.postMessage({message:"Generando el audio en español…"});
+  const synthesize=await pipeline("text-to-speech","Xenova/mms-tts-spa",{dtype:"q8"});
+  const {audio,sampling_rate:sampleRate}=await synthesize(translation);
+  await synthesize.dispose();
+  if(!audio?.length || !Number.isFinite(sampleRate)) throw Error("Audio vacío");
+  self.postMessage({translation,audio,sampleRate},[audio.buffer]);
  } catch(error) {
   console.warn("Radio ES:",error);
-  self.postMessage({id,error:"No se pudo procesar la radio. Comprueba la conexión para descargar los modelos y vuelve a intentarlo."});
+  self.postMessage({translation,error:"No se pudo generar la voz en español. Vuelve a pulsar «Escuchar en español»."});
  }
-}
-
-let pending=Promise.resolve();
-self.onmessage=({data})=>{
- pending=pending.then(()=>processRadio(data));
 };

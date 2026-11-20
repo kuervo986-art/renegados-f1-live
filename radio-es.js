@@ -1,169 +1,133 @@
-const element=id=>document.getElementById("radio-es-"+id);
-const panel=element("panel");
-const status=element("status");
-const result=element("result");
-const source=element("source");
-const player=element("player");
-const inputOriginal=element("original-file");
-const inputDub=element("dub-file");
-const text=element("text");
-const voices=window.speechSynthesis;
-let worker, playbackUrl, current=0, timer;
+const api="https://renegados-f1-live.onrender.com/api/radio/transcripcion";
+// Fragmentos inteligibles ya revisados de los Libres 1 de Las Vegas.
+const revisadas = {
+ "2026/2026-11-21_Las_Vegas_Grand_Prix/2026-11-19_Practice_1/TeamRadio/HIR_50_20261119_165039.mp3": "La dirección va bastante dura. Lo revisaremos.",
+ "2026/2026-11-21_Las_Vegas_Grand_Prix/2026-11-19_Practice_1/TeamRadio/ANT_12_20261119_170452.mp3": "Sí, sí, hay aquaplaning por todas partes. Vale, recibido. No corras riesgos.",
+ "2026/2026-11-21_Las_Vegas_Grand_Prix/2026-11-19_Practice_1/TeamRadio/ALB_23_20261119_170535.mp3": "¡Uf!",
+ "2026/2026-11-21_Las_Vegas_Grand_Prix/2026-11-19_Practice_1/TeamRadio/BEG_38_20261119_170547.mp3": "Sí, increíble. Entra en boxes en esta vuelta, por favor.",
+ "2026/2026-11-21_Las_Vegas_Grand_Prix/2026-11-19_Practice_1/TeamRadio/VER_3_20261119_171001.mp3": "Es como una pista de hielo. Sí, recibido."
+};
+const panel=document.getElementById("radio-es-panel");
+const status=document.getElementById("radio-es-status");
+const text=document.getElementById("radio-es-text");
+const player=document.getElementById("radio-es-player");
 
-function stopPlayback() {
- voices?.cancel();
- player.pause();
-}
+let worker, request, playbackUrl, timer, sequence=0;
 
 function reset() {
- ++current;
+ request?.abort();
+ request=new AbortController();
+ ++sequence;
  clearTimeout(timer);
- stopPlayback();
+ worker?.terminate();
+ worker=undefined;
+ player.pause();
  player.removeAttribute("src");
  player.load();
  player.hidden=true;
  if(playbackUrl) URL.revokeObjectURL(playbackUrl);
  playbackUrl=undefined;
- result.hidden=true;
- text.value="";
+ text.textContent="";
 }
 
-function write(message) { status.textContent=message; }
+function waveFile(audio, sampleRate) {
+ const bytes=new ArrayBuffer(44+audio.length*2);
+ const output=new DataView(bytes);
+ const ascii=(offset,value)=>[...value].forEach((letter,index)=>output.setUint8(offset+index,letter.charCodeAt(0)));
+ ascii(0,"RIFF");
+ output.setUint32(4,bytes.byteLength-8,true);
+ ascii(8,"WAVEfmt ");
+ output.setUint32(16,16,true);
+ output.setUint16(20,1,true);
+ output.setUint16(22,1,true);
+ output.setUint32(24,sampleRate,true);
+ output.setUint32(28,sampleRate*2,true);
+ output.setUint16(32,2,true);
+ output.setUint16(34,16,true);
+ ascii(36,"data");
+ output.setUint32(40,audio.length*2,true);
+ for(let i=0;i<audio.length;i++) output.setInt16(44+i*2,Math.max(-1,Math.min(1,audio[i]))*32767,true);
+ return new Blob([bytes],{type:"audio/wav"});
+}
 
-function prepareWorker() {
- if(worker) return worker;
- worker=new Worker(new URL("./radio-es-worker.js?v=1",import.meta.url),{type:"module"});
- worker.onmessage=({data:{id,message,error,translation}})=>{
-  if(id!==current) return;
-  if(message) {write(message);return;}
+async function transcribe(clip,signal) {
+ const url=api+"?"+new URLSearchParams({clip});
+ const deadline=Date.now()+100000;
+ while(Date.now()<deadline) {
+  signal.throwIfAborted();
+  const response=await fetch(url,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)]),cache:"no-store"});
+  if(response.status===202) {
+   await new Promise(resolve=>setTimeout(resolve,2000));
+   continue;
+  }
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok || !data.texto) throw Error(data.error||"La traducción de radios aún no está disponible en el receptor.");
+  return data.texto;
+ }
+ throw Error("La transcripción está tardando. Pulsa «Escuchar en español» para reintentar.");
+}
+
+function createSpanishAudio(original,id,reviewed) {
+ status.textContent=reviewed?"Generando el audio en español…":"Preparando la traducción y la voz en español…";
+ worker=new Worker(new URL("./radio-es-worker.js?v=2",import.meta.url),{type:"module"});
+ timer=setTimeout(()=>{
+  if(id!==sequence) return;
+  worker?.terminate();
+  worker=undefined;
+  status.textContent="La voz en español tardó demasiado. Pulsa «Escuchar en español» para reintentar.";
+ },150000);
+ worker.onmessage=async({data})=>{
+  if(id!==sequence) return;
+  if(data.message) {
+   status.textContent=data.message;
+   return;
+  }
   clearTimeout(timer);
-  if(error) {write(error);return;}
-  text.value=translation;
-  result.hidden=false;
-  write("Traducción lista. Pulsa «Reproducir traducción» para oírla.");
+  if(data.translation) text.textContent=data.translation;
+  if(data.error) {
+   status.textContent=data.error;
+   return;
+  }
+  playbackUrl=URL.createObjectURL(waveFile(data.audio,data.sampleRate));
+  player.src=playbackUrl;
+  player.hidden=false;
+  try {
+   await player.play();
+   if(id===sequence) status.textContent=reviewed?"Reproduciendo la radio en español.":"Reproduciendo la traducción automática.";
+  } catch {
+   if(id===sequence) status.textContent="La radio está lista. Pulsa Reproducir en el control de audio.";
+  }
  };
  worker.onerror=()=>{
-  worker.terminate();
-  worker=undefined;
+  if(id!==sequence)return;
   clearTimeout(timer);
-  write("El traductor no pudo iniciarse. Puedes reproducir un MP3 ya traducido.");
+  status.textContent="No se pudo iniciar la voz en español. Pulsa el botón para reintentar.";
  };
- return worker;
-}
-
-async function pcm16k(blob) {
- const AudioContext=window.AudioContext??window.webkitAudioContext;
- const OfflineAudioContext=window.OfflineAudioContext??window.webkitOfflineAudioContext;
- if(!AudioContext||!OfflineAudioContext) throw Error("Este navegador no puede leer el audio para traducirlo.");
- if(blob.size>15*1024*1024) throw Error("Selecciona un clip de menos de 15 MB.");
- const context=new AudioContext();
- let decoded;
- try { decoded=await context.decodeAudioData(await blob.arrayBuffer()); }
- catch {throw Error("No se pudo abrir el audio. Selecciona un MP3 o WAV válido."); }
- finally { await context.close(); }
- if(decoded.duration>90) throw Error("Selecciona un clip de como máximo 90 segundos.");
- const offline=new OfflineAudioContext(1,Math.max(1,Math.ceil(decoded.duration*16000)),16000);
- const original=offline.createBufferSource();
- original.buffer=decoded;
- const high=offline.createBiquadFilter(), low=offline.createBiquadFilter();
- high.type="highpass"; high.frequency.value=210;
- low.type="lowpass"; low.frequency.value=4700;
- original.connect(high).connect(low).connect(offline.destination);
- original.start();
- const buffer=await offline.startRendering();
- const pcm=buffer.getChannelData(0);
- let peak=0;
- for(const sample of pcm) peak=Math.max(peak,Math.abs(sample));
- if(peak>.015 && peak<.5) {
-  const gain=Math.min(4,.7/peak);
-  for(let i=0;i<pcm.length;i++) pcm[i]*=gain;
- }
- return pcm;
-}
-
-async function translateFile(blob,id) {
- try {
-  write("Leyendo el audio en este navegador…");
-  const pcm=await pcm16k(blob);
-  if(id!==current) return;
-  write("Preparando el traductor en el navegador…");
-  prepareWorker().postMessage({id,pcm},[pcm.buffer]);
-  timer=setTimeout(()=>{
-   if(id!==current) return;
-   worker?.terminate();
-   worker=undefined;
-   write("La traducción tardó demasiado. Vuelve a cargar el clip para reintentar.");
-  },180000);
- } catch(error) { if(id===current) write(error.message); }
+ worker.postMessage({original,reviewed});
 }
 
 document.getElementById("radios").addEventListener("click",async event=>{
  const button=event.target.closest("button[data-radio-url]");
  if(!button) return;
+ const url=new URL(button.dataset.radioUrl);
+ if(url.origin!=="https://livetiming.formula1.com" || !url.pathname.startsWith("/static/")) return;
  reset();
- const id=current;
- const url=button.dataset.radioUrl;
- element("link").href=url;
- source.hidden=false;
- panel.open=true;
- write("Comprobando si podemos leer este audio original…");
+ const id=sequence;
+ panel.hidden=false;
+ const clip=url.pathname.slice("/static/".length);
+ const reviewed=revisadas[clip];
+ if(reviewed) {
+  createSpanishAudio(null,id,reviewed);
+  return;
+ }
+ status.textContent="Transcribiendo esta radio…";
  try {
-  const response=await fetch(url,{credentials:"omit",signal:AbortSignal.timeout(7000)});
-  if(!response.ok) throw Error("Audio externo restringido");
-  const blob=await response.blob();
-  if(!blob.type.startsWith("audio/")) throw Error("Audio externo restringido");
-  if(id===current) void translateFile(blob,id);
- } catch {
-  if(id===current) write("Abre y guarda el audio original. Después pulsa «Cargar original en inglés» para traducirlo aquí.");
+  const original=await transcribe(clip,request.signal);
+  if(id===sequence) createSpanishAudio(original,id);
+ } catch(error) {
+  if(id===sequence) status.textContent=error.name==="TimeoutError"
+   ?"El receptor tardó en responder. Vuelve a pulsar «Escuchar en español»."
+   :error.message;
  }
 });
-
-element("choose-original").onclick=()=>inputOriginal.click();
-element("choose-dub").onclick=()=>inputDub.click();
-inputOriginal.onchange=()=>{
- const file=inputOriginal.files[0]; inputOriginal.value="";
- if(!file) return;
- reset();
- void translateFile(file,current);
-};
-inputDub.onchange=()=>{
- const file=inputDub.files[0]; inputDub.value="";
- if(!file) return;
- reset();
- playbackUrl=URL.createObjectURL(file);
- player.src=playbackUrl;
- player.hidden=false;
- write("Audio en español cargado en el reproductor.");
- player.play().catch(()=>write("Pulsa Reproducir en el control de audio."));
-};
-player.onerror=()=>{if(playbackUrl)write("El navegador no pudo abrir ese archivo de audio.");};
-player.onplay=()=>voices?.cancel();
-
-element("speak").onclick=()=>{
- const spoken=text.value.trim();
- if(!spoken)return;
- if(!voices||!window.SpeechSynthesisUtterance) {
-  write("Este navegador no dispone de síntesis de voz. La traducción escrita sigue disponible.");
-  return;
- }
- const available=voices.getVoices().filter(voice=>voice.localService&&/^es(?:[-_]|$)/i.test(voice.lang));
- const voice=available.find(voice=>/^es[-_]ES$/i.test(voice.lang))??available[0];
- if(!voice) {
-  write("No hay una voz local en español disponible en este navegador. Puedes leer la traducción o abrir un MP3 en español.");
-  return;
- }
- stopPlayback();
- const utterance=new SpeechSynthesisUtterance(spoken);
- utterance.voice=voice;
- utterance.lang=voice.lang;
- utterance.onerror=event=>{
-  if(!["canceled","interrupted"].includes(event.error))write("No se pudo iniciar la voz en español.");
- };
- voices.speak(utterance);
-};
-element("stop").onclick=()=>voices?.cancel();
-window.addEventListener("pagehide",()=>{
- stopPlayback();
- if(playbackUrl)URL.revokeObjectURL(playbackUrl);
- worker?.terminate();
-});
+window.addEventListener("pagehide",reset);

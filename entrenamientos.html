@@ -40,11 +40,9 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 #map3DTime{flex:1;min-width:120px}#map3DClock{min-width:108px;font-variant-numeric:tabular-nums;font-size:12px}
 #map3DEnvironment{margin:0;padding:4px 12px}#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
 
-.radio-es{padding:9px 12px;border-top:1px solid #34465e;font-size:12px}.radio-es summary{cursor:pointer;color:#ffc0c9;font-weight:650}
-.radio-es p{margin:8px 0}.radio-es-actions{display:flex;gap:6px;flex-wrap:wrap}.radio-es button,.radio-action{font-size:12px;padding:5px 8px}
-.radio-es textarea{display:block;width:100%;min-height:64px;margin:4px 0 6px;font:inherit;color:inherit;background:#142034;border:1px solid #50627d;border-radius:6px;padding:6px}
-.radio-es audio{display:block;width:100%;margin-top:8px}.radio-es audio[hidden]{display:none}
-.radio-es button:disabled{opacity:.55;cursor:default}
+.radio-es{padding:9px 12px;border-top:1px solid #34465e;font-size:12px}.radio-es p{margin:6px 0}
+.radio-es audio{display:block;width:100%;margin-top:6px}.radio-es audio[hidden]{display:none}
+.radio-action{font-size:12px;padding:5px 8px}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}
@@ -88,26 +86,11 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 <section class="panel">
 <h2>RADIOS DE EQUIPO</h2>
 <div id="radios">Sin grabaciones disponibles.</div>
-<details id="radio-es-panel" class="radio-es">
-<summary>Escuchar en español</summary>
-<p id="radio-es-status" role="status">Selecciona el MP3 original para traducirlo o abre un audio que ya esté en español.</p>
-<p id="radio-es-source" hidden><a id="radio-es-link" target="_blank" rel="noopener noreferrer">Abrir audio original para guardarlo</a></p>
-<div class="radio-es-actions">
-<button id="radio-es-choose-original" type="button">Cargar original en inglés</button>
-<button id="radio-es-choose-dub" type="button">Abrir MP3 en español</button>
-<input id="radio-es-original-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg" hidden>
-<input id="radio-es-dub-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg" hidden>
+<div id="radio-es-panel" class="radio-es" hidden>
+<p id="radio-es-status" role="status"></p>
+<p id="radio-es-text" lang="es"></p>
+<audio id="radio-es-player" controls preload="none" aria-label="Radio en español" hidden></audio>
 </div>
-<audio id="radio-es-player" controls preload="metadata" aria-label="Radio en español" hidden></audio>
-<div id="radio-es-result" hidden>
-<label for="radio-es-text">Traducción automática en español</label>
-<textarea id="radio-es-text" spellcheck="true" lang="es"></textarea>
-<div class="radio-es-actions">
-<button id="radio-es-speak" type="button">Reproducir traducción</button>
-<button id="radio-es-stop" type="button">Parar la voz</button>
-</div>
-</div>
-</details>
 </section>
 <section id="lapsPanel" class="panel" hidden><h2>VUELTAS POR PILOTO</h2><div id="laps"><label>Piloto <select id="lapDriver"></select></label><table><thead><tr><th>VUELTA</th><th>TIEMPO</th><th>S1</th><th>S2</th><th>S3</th><th>NEUM.</th></tr></thead><tbody id="lapTimes"></tbody></table></div></section>
 </aside></div>
@@ -115,5 +98,5 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 <script src="./f1-es.js?v=1"></script>
 <script src="./marcas-circuitos.js?v=1"></script>
 <script src="./entrenamientos.js?v=7"></script>
-<script type="module" src="./radio-es.js?v=1"></script>
+<script type="module" src="./radio-es.js?v=2"></script>
 </body></html>

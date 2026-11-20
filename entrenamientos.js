@@ -149,7 +149,8 @@ function renderRadios(entries, rows, sessionPath) {
   const time = timestamp(eventDate(item));
   return '<p>'+esc(names.get(String(driver))??(driver?"Coche "+driver:"Radio"))+
    (Number.isFinite(time)?" · "+timeFormat.format(time):"")+
-   ' · <a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Escuchar audio original</a></p>';
+   ' · <a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Escuchar audio original</a>'+
+   ' · <button type="button" class="radio-action" data-radio-url="'+esc(url.href)+'">Escuchar en español</button></p>';
  }).filter(Boolean);
  el("radios").innerHTML = links.slice(-30).reverse().join("") || (entries?"Sin grabaciones disponibles.":"Radios no disponibles.");
 }

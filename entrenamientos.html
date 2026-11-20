@@ -30,10 +30,22 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 #weather,#radios,#limits,#laps {margin:10px 12px;color:#d9e8fa;font-size:12px}
 #radios,#limits,#laps{max-height:225px;overflow:auto}#radios p,#limits p{margin:6px 0}
 #fia{max-height:280px}.scroll td{padding-top:6px;padding-bottom:6px}
-</style></head><body>
+
+#map3DButton{border-color:#8b5368}
+#map3DPanel{margin:0 0 12px}#map3DPanel[hidden]{display:none}
+.map3d-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px}
+.map3d-toolbar label{font-size:13px}.map3d-toolbar button{padding:7px 10px;font-size:13px}
+#map3DViewport{height:clamp(275px,51vh,580px);position:relative;background:#0a1221;overflow:hidden}
+#map3DViewport canvas{display:block;width:100%;height:100%}
+#map3DTime{flex:1;min-width:120px}#map3DClock{min-width:108px;font-variant-numeric:tabular-nums;font-size:12px}
+#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}
+</script></head><body>
 <header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE ENTRENAMIENTOS · FP1 / FP2 / FP3</small></div><nav><a href="./">Inicio</a> · <a href="./monitor.html">🏁 Volver al monitor de carrera</a></nav></header>
 <main>
-<div class="toolbar"><button id="liveMode" aria-pressed="true">En directo</button><button id="historyMode" aria-pressed="false">Histórico</button><button id="refresh">Actualizar ahora</button><span class="status" id="status" role="status">Esperando datos…</span></div>
+<div class="toolbar"><button id="liveMode" aria-pressed="true">En directo</button><button id="historyMode" aria-pressed="false">Histórico</button><button id="refresh">Actualizar ahora</button><button id="map3DButton" type="button" aria-controls="map3DPanel" aria-expanded="false">Abrir mapa 3D</button><span class="status" id="status" role="status">Esperando datos…</span></div>
 <div id="historyControls" class="toolbar" hidden>
 <label>Temporada <select id="year"></select></label>
 <label>Gran Premio <select id="meeting" disabled></select></label>
@@ -42,6 +54,24 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 </div>
 <div class="phases"><div class="phase" id="phase1"><strong>FP1</strong><p>Entrenamientos libres 1</p></div><div class="phase" id="phase2"><strong>FP2</strong><p>Entrenamientos libres 2</p></div><div class="phase" id="phase3"><strong>FP3</strong><p>Entrenamientos libres 3</p></div></div>
 <p id="phaseStatus">Consultando el estado de la sesión…</p>
+<section id="map3DPanel" class="panel" aria-labelledby="map3DTitle" hidden>
+<h2 id="map3DTitle">Mapa 3D de entrenamientos</h2>
+<div class="map3d-toolbar">
+<button id="map3DReplay" type="button" disabled>Repetir con datos reales</button>
+<button id="map3DDemo" type="button">Probar demostración</button>
+<button id="map3DCenter" type="button">Cámara general</button>
+<label>Piloto <select id="map3DDriver"><option value="">Vista general</option></select></label>
+<button id="map3DClose" type="button">Cerrar 3D</button>
+</div>
+<p id="map3DStatus" role="status">Preparando el circuito…</p>
+<div id="map3DViewport" aria-label="Vista tridimensional del circuito"></div>
+<div class="map3d-toolbar">
+<button id="map3DPlay" type="button" disabled>Reproducir</button>
+<label>Velocidad <select id="map3DSpeed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+<input id="map3DTime" type="range" min="0" max="1" step="0.1" value="0" aria-label="Tiempo de la repetición" disabled>
+<output id="map3DClock">00:00 / 00:00</output>
+</div>
+</section>
 <div class="layout">
 <section class="panel"><h2>⏱️ ENTRENAMIENTOS · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>ÚLTIMA VUELTA</th><th>AL PRIMERO</th><th>AL ANTERIOR</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>VUELTAS</th><th>BOXES</th><th>ESTADO</th><th>KM/H</th></tr></thead><tbody id="timing"><tr><td colspan="15">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">S1–S3 muestran los últimos sectores recibidos en directo y los de la mejor vuelta en el histórico.</p></section>
 <aside class="extras"><section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section>
@@ -52,5 +82,5 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 </aside></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos · Receptor comunitario y OpenF1 · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
-<script src="./entrenamientos.js?v=2"></script>
+<script src="./entrenamientos.js?v=3"></script>
 </body></html>

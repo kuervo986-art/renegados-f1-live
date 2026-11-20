@@ -15,6 +15,10 @@ const timeFormat = new Intl.DateTimeFormat("es-ES",{ timeStyle:"medium" });
 const state = { mode:"live", revision:0, liveRevision:null, seasons:new Map(), history:new Map() };
 let circuits;
 let lapData;
+let map3D;
+let map3DLoad;
+let replayContext;
+let circuit3D;
 const snapshotKey = "renegados-entrenamientos-ultima-sesion-v1";
 let lastPractice;
 try {
@@ -164,6 +168,8 @@ async function renderMap(location, shortName, revision, sessionId) {
  const feature = features.find(item => [item.properties.location,item.properties.name]
   .map(normalize).some(name=>candidates.includes(name)));
  const points = feature?.geometry?.type==="LineString" ? feature.geometry.coordinates : [];
+ circuit3D = points.length>1 ? {name:location||shortName,points} : null;
+ updateMap3D();
  if (points.length<2) {
   el("track").setAttribute("d","");
   el("map").setAttribute("hidden","");
@@ -182,6 +188,9 @@ async function renderMap(location, shortName, revision, sessionId) {
 }
 
 function clearPanels(message) {
+ replayContext = null;
+ circuit3D = null;
+ updateMap3D();
  renderTiming([],message);
  renderEvents(null,[]);
  renderWeather(null);
@@ -388,6 +397,8 @@ function renderHistory(data,session,revision) {
  renderEvents(events,rows);
  renderWeather(weather.at(-1));
  renderRadios(radios,rows);
+ replayContext = {session, laps, rows};
+ updateMap3D();
  void renderMap(session.location,session.circuit_short_name,revision);
  lapData={laps,stints};
  el("lapsPanel").hidden = !laps.length;
@@ -458,6 +469,33 @@ function switchMode(mode) {
   void refreshLive();
  }
 }
+
+function updateMap3D() {
+ map3D?.setContext(circuit3D,replayContext);
+}
+
+async function openMap3D() {
+ el("map3DPanel").hidden=false;
+ el("map3DButton").setAttribute("aria-expanded","true");
+ el("map3DPanel").scrollIntoView({block:"start",behavior:"smooth"});
+ try {
+  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=1").then(module=>module.createMap3D(el,historical));
+  map3D = await map3DLoad;
+  map3D.setContext(circuit3D,replayContext);
+  if (!el("map3DPanel").hidden) map3D.show();
+ } catch {
+  map3DLoad = null;
+  el("map3DStatus").textContent="No se pudo iniciar el 3D. Puedes seguir usando el mapa del monitor.";
+ }
+}
+
+el("map3DButton").onclick=openMap3D;
+el("map3DClose").onclick=()=>{
+ el("map3DPanel").hidden=true;
+ el("map3DButton").setAttribute("aria-expanded","false");
+ map3D?.hide();
+ el("map3DButton").focus();
+};
 
 const year = new Date().getFullYear();
 for (let y=year;y>=2023;y--) el("year").add(new Option(y,y));

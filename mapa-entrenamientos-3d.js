@@ -1,0 +1,353 @@
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+
+const DEMO_COLORS = [0xff5268,0x66e2d5,0xff963d,0x799dff,0x5dc87d,0xcc94ff];
+const clock = seconds => {
+ const whole = Math.max(0,Math.floor(seconds));
+ return String(Math.floor(whole/60)).padStart(2,"0")+":"+String(whole%60).padStart(2,"0");
+};
+const validPositions = rows => rows.filter(row=>Number.isFinite(row.x)&&Number.isFinite(row.y)&&
+ Number.isFinite(Date.parse(row.date))&&(row.x!==0||row.y!==0));
+const xyz = (row,scale) => new THREE.Vector3(row.x*scale,(Number(row.z)||0)*scale,-row.y*scale);
+
+function normalizer(points) {
+ const box = new THREE.Box3().setFromPoints(points);
+ const center = box.getCenter(new THREE.Vector3());
+ const size = box.getSize(new THREE.Vector3());
+ const scale = 920/Math.max(size.x,size.z,1);
+ center.y = box.min.y;
+ return point=>point.clone().sub(center).multiplyScalar(scale);
+}
+
+function buildTrack(points) {
+ const path = points.filter((point,index)=>!index||point.distanceToSquared(points[index-1])>1);
+ if (path.at(-1).distanceToSquared(path[0])<16) path.pop();
+ return new THREE.CatmullRomCurve3(path,true,"centripetal");
+}
+
+function roadGeometry(curve,width,height) {
+ const count = 800;
+ const points = curve.getSpacedPoints(count);
+ const vertices = [];
+ const indices = [];
+ for (let i=0;i<=count;i++) {
+  const direction = points[(i+1)%count].clone().sub(points[(i+count-1)%count]);
+  const side = new THREE.Vector3(direction.z,0,-direction.x).normalize().multiplyScalar(width/2);
+  for (const sign of [-1,1]) {
+   const point = points[i].clone().addScaledVector(side,sign);
+   vertices.push(point.x,point.y+height,point.z);
+  }
+  if (i<count) indices.push(2*i,2*i+1,2*i+2,2*i+1,2*i+3,2*i+2);
+ }
+ const geometry = new THREE.BufferGeometry();
+ geometry.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+ geometry.setIndex(indices);
+ geometry.computeVertexNormals();
+ return geometry;
+}
+
+function carsInWindow(raw,start,normalize) {
+ const samples = new Map();
+ for (const row of validPositions(raw)) {
+  const id = String(row.driver_number??"");
+  if (!/^\d+$/.test(id)) continue;
+  if (!samples.has(id)) samples.set(id,[]);
+  samples.get(id).push({time:(Date.parse(row.date)-start)/1000,point:normalize(xyz(row,1))});
+ }
+ for (const series of samples.values()) series.sort((a,b)=>a.time-b.time);
+ return samples;
+}
+
+function positionAt(series,time) {
+ if (!series?.length||time<series[0].time||time>series.at(-1).time) return null;
+ let first=0, last=series.length-1;
+ while (last-first>1) {
+  const mid=(first+last)>>1;
+  if (series[mid].time<=time) first=mid;
+  else last=mid;
+ }
+ const a=series[first],b=series[last];
+ const span=b.time-a.time;
+ if (span>2.5) return null;
+ const position = a.point.clone().lerp(b.point,span>0?(time-a.time)/span:0);
+ const direction = b.point.clone().sub(a.point);
+ return {position,direction};
+}
+
+function carModel(color,label) {
+ const car = new THREE.Group();
+ const body = new THREE.MeshStandardMaterial({color,roughness:.62});
+ const rubber = new THREE.MeshStandardMaterial({color:0x101019,roughness:.95});
+ const box=(w,h,d,x,y,z,material)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  mesh.position.set(x,y,z);
+  car.add(mesh);
+ };
+ box(5.2,2.4,12,0,2,0,body);
+ box(2.2,1.2,4,0,1.5,6,body);
+ box(9,1,2,0,1.5,7.5,body);
+ box(8,1.1,2,0,3.9,-5.6,body);
+ box(2.2,1.4,2.4,0,3.2,-1.1,rubber);
+ for (const x of [-3.8,3.8]) for (const z of [-4.2,4.2]) box(2.7,3.2,3.1,x,1.6,z,rubber);
+ const canvas=document.createElement("canvas");
+ canvas.width=128; canvas.height=56;
+ const ctx=canvas.getContext("2d");
+ ctx.fillStyle="#0d1726"; ctx.fillRect(0,0,128,56);
+ ctx.fillStyle="#ffffff"; ctx.font="bold 36px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+ ctx.fillText(label,64,29,120);
+ const texture=new THREE.CanvasTexture(canvas);
+ texture.colorSpace=THREE.SRGBColorSpace;
+ const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false}));
+ tag.position.y=18; tag.scale.set(26,11,1); car.add(tag);
+ return car;
+}
+
+function disposeGroup(group) {
+ const materials=new Set();
+ group.traverse(item=>{
+  item.geometry?.dispose();
+  if (item.material) materials.add(item.material);
+ });
+ for (const material of materials) {
+  material.map?.dispose();
+  material.dispose();
+ }
+ group.clear();
+}
+
+export function createMap3D(el,historical) {
+ const view=el("map3DViewport");
+ const info=el("map3DStatus"), timeline=el("map3DTime"), playButton=el("map3DPlay"), drivers=el("map3DDriver");
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+ renderer.setClearColor(0x101a29);
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+ view.replaceChildren(renderer.domElement);
+ const scene=new THREE.Scene();
+ const camera=new THREE.PerspectiveCamera(43,1,1,6000);
+ const controls=new OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;
+ controls.minDistance=80;
+ controls.maxDistance=2800;
+ controls.maxPolarAngle=Math.PI/2-.06;
+ scene.add(new THREE.HemisphereLight(0xddeeff,0x455064,2.3));
+ const light=new THREE.DirectionalLight(0xffe4d0,2.7);
+ light.position.set(220,380,160); scene.add(light);
+ const track=new THREE.Group(), fleet=new THREE.Group();
+ scene.add(track,fleet);
+ const surface=new THREE.Mesh(new THREE.PlaneGeometry(2300,2300),new THREE.MeshStandardMaterial({color:0x182936}));
+ surface.rotation.x=-Math.PI/2; surface.position.y=-3; scene.add(surface);
+ const grid=new THREE.GridHelper(1800,24,0x405466,0x293e50);
+ grid.position.y=-2.8; scene.add(grid);
+ const cars=new Map();
+ let circuit, archived, previousContext, staticKey, mode="", curve, samples, duration=0, time=0;
+ let frame=0, lastFrame=0, visible=false, playing=false, job=0, previousFocus;
+ let fallback;
+
+ function center() {
+  drivers.value="";
+  previousFocus=null;
+  camera.position.set(390,840,1110);
+  controls.target.set(0,0,0);
+  controls.update();
+ }
+
+ function resize() {
+  const {width,height}=view.getBoundingClientRect();
+  if (!width||!height) return;
+  camera.aspect=width/height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width,height,false);
+ }
+ new ResizeObserver(resize).observe(view);
+ center();
+
+ function setTrack(points) {
+  disposeGroup(track);
+  curve=buildTrack(points);
+  for (const [width,height,color] of [[28,0,0x546277],[20,.22,0x293749]]) {
+   const material=new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.95});
+   track.add(new THREE.Mesh(roadGeometry(curve,width,height),material));
+  }
+  const start=curve.getPointAt(0);
+  const heading=curve.getTangentAt(0);
+  const marking=new THREE.Mesh(new THREE.BoxGeometry(19,.35,1.2),new THREE.MeshBasicMaterial({color:0xdfe9f5}));
+  marking.position.copy(start); marking.position.y+=.5;
+  marking.rotation.y=Math.atan2(heading.x,heading.z);
+  track.add(marking);
+ }
+
+ function setCars(list) {
+  cars.clear(); disposeGroup(fleet);
+  drivers.replaceChildren(new Option("Vista general",""));
+  for (const {id,name,color} of list) {
+   const safeColor=/^[a-f0-9]{6}$/i.test(color)?parseInt(color,16):0xa9b9ce;
+   const car=carModel(safeColor,String(name||id));
+   cars.set(String(id),car);
+   fleet.add(car);
+   drivers.add(new Option(name||id,id));
+  }
+  previousFocus=null;
+ }
+
+ function setPlayback(seconds) {
+  duration=seconds; time=0; playing=false;
+  timeline.disabled=!duration; playButton.disabled=!duration;
+  timeline.max=duration||1;
+  syncTime();
+ }
+
+ function syncTime() {
+  timeline.value=time;
+  el("map3DClock").textContent=clock(time)+" / "+clock(duration);
+  playButton.textContent=playing?"Pausar":"Reproducir";
+ }
+
+ async function getCircuit() {
+  if (circuit) return circuit;
+  fallback ??= fetch("./circuits.geojson",{signal:AbortSignal.timeout(9000)}).then(response=>{
+   if (!response.ok) throw Error("Circuitos no disponibles");
+   return response.json();
+  }).then(data=>data.features.find(item=>item.properties.location==="Las Vegas")).then(item=>({
+   name:"Las Vegas",points:item.geometry.coordinates
+  })).catch(error=>{fallback=null;throw error;});
+  return fallback;
+ }
+
+ async function staticTrack(demo=false) {
+  const request=++job;
+  try {
+   const course=await getCircuit();
+   if (request!==job) return;
+   const radians=course.points[0][1]*Math.PI/180;
+   const points=course.points.map(([x,y])=>new THREE.Vector3(x*Math.cos(radians)*10000,0,-y*10000));
+   const project=normalizer(points);
+   setTrack(points.map(project));
+   staticKey=course;
+   mode=demo?"demo":"static";
+   setCars(demo?DEMO_COLORS.map((color,index)=>({id:index+1,name:"Demo "+(index+1),color:color.toString(16)})):[]);
+   setPlayback(demo?90:0);
+   info.textContent=course.name+(demo?" · Demostración 3D con coches ficticios.":" · Vista 3D del trazado. Selecciona una sesión histórica para cargar posiciones registradas.");
+   if (demo) { playing=true; syncTime(); }
+   center();
+  } catch {
+   if (request===job) info.textContent="No se pudo cargar el trazado del circuito.";
+  }
+ }
+
+ async function realReplay() {
+  if (!archived) return;
+  const {session,laps,rows}=archived;
+  const request=++job;
+  mode="loading";
+  setCars([]);
+  setPlayback(0);
+  el("map3DReplay").disabled=true;
+  info.textContent="Cargando un tramo con posiciones registradas de OpenF1…";
+  try {
+   const lap = laps.filter(item=>!item.is_pit_out_lap && item.lap_duration>=45 &&
+    item.lap_duration<=180 && Number.isFinite(Date.parse(item.date_start)))
+    .sort((a,b)=>a.lap_duration-b.lap_duration)[0];
+   if (!lap) throw Error("La sesión no contiene una vuelta completa para reconstruir el trazado.");
+   const start=Date.parse(lap.date_start);
+   const end=start+Math.ceil(lap.lap_duration*1000);
+   const range={ session_key:session.session_key,"date>":new Date(start-750).toISOString(),
+    "date<":new Date(end+750).toISOString() };
+   const raw=await historical("location",range);
+   if (request!==job) return;
+   const trace=validPositions(raw).filter(point=>String(point.driver_number)===String(lap.driver_number) &&
+    Date.parse(point.date)>=start && Date.parse(point.date)<=end).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
+   if (trace.length<35) throw Error("OpenF1 no tiene puntos suficientes para reconstruir una vuelta de esta sesión.");
+   const points=trace.map(point=>xyz(point,1));
+   const project=normalizer(points);
+   samples=carsInWindow(raw,start,project);
+   if (!samples.size) throw Error("No se recibieron posiciones de los coches para este tramo.");
+   setTrack(points.map(project));
+   const names=new Map(rows.map(row=>[String(row.id),row]));
+   setCars([...samples.keys()].map(id=>names.get(id)??{id,name:id}));
+   setPlayback(lap.lap_duration);
+   mode="replay";
+   info.textContent="Repetición 3D · posiciones registradas por OpenF1 · vuelta "+lap.lap_number+" de "+(names.get(String(lap.driver_number))?.name??"coche "+lap.driver_number)+
+    " · "+samples.size+" pilotos con posiciones en el tramo.";
+   center();
+   playing=true;
+   syncTime();
+  } catch (error) {
+   if (request!==job) return;
+   mode="static";
+   info.textContent=error.status===401||error.status===403?
+    "OpenF1 restringe ahora el acceso a las posiciones históricas. Puedes probar la demostración 3D.":
+    error.status===429?"OpenF1 ha limitado las consultas. Vuelve a intentarlo en unos segundos.":
+    "Posiciones históricas no disponibles para este tramo. Puedes probar la demostración 3D.";
+  } finally {
+   if (request===job) el("map3DReplay").disabled=!archived?.laps?.length;
+  }
+ }
+
+ function draw(now) {
+  if (!visible) {frame=0;return;}
+  if (playing) {
+   time+=Math.min(.1,(now-(lastFrame||now))/1000)*Number(el("map3DSpeed").value);
+   if (time>=duration) {time=duration;playing=false;}
+   syncTime();
+  }
+  lastFrame=now;
+  let index=0;
+  for (const [id,car] of cars) {
+   let pose;
+   if (mode==="demo") {
+    const fraction=(time/42+index*.16+1)%1;
+    pose={position:curve.getPointAt(fraction),direction:curve.getTangentAt(fraction)};
+   }
+   if (mode==="replay") pose=positionAt(samples.get(id),time);
+   car.visible=Boolean(pose);
+   if (pose) {
+    car.position.copy(pose.position);
+    car.position.y+=.7;
+    if (pose.direction.lengthSq()>.0001) car.rotation.y=Math.atan2(pose.direction.x,pose.direction.z);
+   }
+   index++;
+  }
+  const focus=cars.get(drivers.value);
+  if (focus?.visible) {
+   if (previousFocus) camera.position.add(focus.position.clone().sub(previousFocus));
+   controls.target.copy(focus.position);
+   previousFocus=focus.position.clone();
+  } else previousFocus=null;
+  controls.update(); renderer.render(scene,camera);
+  frame=requestAnimationFrame(draw);
+ }
+
+ el("map3DCenter").onclick=center;
+ el("map3DDemo").onclick=()=>void staticTrack(true);
+ el("map3DReplay").onclick=realReplay;
+ playButton.onclick=()=>{
+  if (!duration) return;
+  if (time>=duration) time=0;
+  playing=!playing; syncTime();
+ };
+ timeline.oninput=()=>{time=Number(timeline.value); syncTime();};
+
+ return {
+  setContext(nextCircuit,nextArchived) {
+   const key=nextArchived?.session.session_key??"";
+   const changed=previousContext!==key;
+   previousContext=key;
+   archived=nextArchived;
+   const circuitChanged=circuit?.name!==nextCircuit?.name;
+   circuit=nextCircuit;
+   if (changed) {++job; mode=""; staticKey=null;}
+   if (!archived?.laps?.length||changed) el("map3DReplay").disabled=!archived?.laps?.length;
+   if (visible && (changed || (circuitChanged && mode==="static"))) void staticTrack();
+  },
+  show() {
+   visible=true; resize();
+   if (!frame) {lastFrame=0; frame=requestAnimationFrame(draw);}
+   if (!mode || (mode==="static" && circuit && staticKey?.name!==circuit.name)) void staticTrack();
+  },
+  hide() {
+   visible=false;
+   playing=false; syncTime();
+   cancelAnimationFrame(frame); frame=0;
+  }
+ };
+}

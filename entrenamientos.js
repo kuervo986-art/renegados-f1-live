@@ -15,9 +15,21 @@ const timeFormat = new Intl.DateTimeFormat("es-ES",{ timeStyle:"medium" });
 const state = { mode:"live", revision:0, liveRevision:null, seasons:new Map(), history:new Map() };
 let circuits;
 let lapData;
+const snapshotKey = "renegados-entrenamientos-ultima-sesion-v1";
+let lastPractice;
+try {
+ lastPractice = JSON.parse(sessionStorage.getItem(snapshotKey)??"null");
+ if (!Number.isFinite(lastPractice?.receivedAt) || !lastPractice.session || !Array.isArray(lastPractice.rows) ||
+     Date.now()-lastPractice.receivedAt>24*60*60*1000) lastPractice = null;
+} catch { lastPractice = null; }
+
+function savePractice(snapshot) {
+ lastPractice = snapshot;
+ try { sessionStorage.setItem(snapshotKey,JSON.stringify(snapshot)); } catch {}
+}
 
 async function json(url) {
- const response = await fetch(url, { signal:AbortSignal.timeout(12000) });
+ const response = await fetch(url, { signal:AbortSignal.timeout(12000), cache:url.startsWith(receiver)?"no-store":"default" });
  if (!response.ok) throw Object.assign(new Error("HTTP "+response.status), { status:response.status });
  return response.json();
 }
@@ -140,13 +152,13 @@ function renderRadios(entries, rows, sessionPath) {
 
 const normalize = value => String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
-async function renderMap(location, shortName, revision) {
+async function renderMap(location, shortName, revision, sessionId) {
  const names = [location,shortName].map(normalize).filter(Boolean);
  const label = el("mapNote");
  if (!names.length) return;
  circuits ??= json("./circuits.geojson").catch(()=>{circuits=undefined;return {features:[]};});
  const features = (await circuits).features;
- if (state.revision!==revision) return;
+ if (state.revision!==revision || (sessionId!=null && lastPractice?.id!==sessionId)) return;
  const aliases = {"interlagos":"sao paulo","lusail":"losail","sakhir":"bahrain","mexico":"mexico city","spa":"spa francorchamps","montmelo":"barcelona"};
  const candidates = names.flatMap(name=>[name,aliases[name]]).filter(Boolean);
  const feature = features.find(item => [item.properties.location,item.properties.name]
@@ -199,6 +211,30 @@ function liveRows(data) {
  }));
 }
 
+function renderSnapshot(snapshot, revision, online) {
+ const {id,part,session,rows,receivedAt,fia,weather,radios} = snapshot;
+ const meeting = session.Meeting??{};
+ const phase = String(session.SessionStatus??"").toLowerCase();
+ highlight(part);
+ el("status").textContent = [
+  nombreSesion("Practice "+part),nombreGranPremio(meeting.Name),
+  (online?"Última actualización: ":"Últimos datos recibidos: ")+timeFormat.format(receivedAt)
+ ].filter(Boolean).join(" · ");
+ el("phaseStatus").textContent = !online ? "Sin conexión reciente. Mostrando los últimos datos recibidos mientras se vuelve a intentar." : ({
+  started:"Sesión en directo.", active:"Sesión en directo.", inactive:"Sesión pendiente de comenzar.",
+  finished:"Sesión finalizada. Últimos datos del receptor.", finalised:"Sesión finalizada. Últimos datos del receptor.",
+  ended:"Sesión finalizada. Últimos datos del receptor.", aborted:"Sesión interrumpida.", suspended:"Sesión suspendida."
+ })[phase]??"Sesión identificada por el receptor.";
+ if (online && !rows.some(row=>row.best!=null)) {
+  el("phaseStatus").textContent += " El receptor todavía no entrega tiempos de vuelta.";
+ }
+ renderTiming(rows);
+ renderEvents(fia,rows);
+ renderWeather(weather);
+ renderRadios(radios,rows,session.Path);
+ void renderMap(meeting.Location,meeting.Circuit?.ShortName,revision,id);
+}
+
 async function refreshLive() {
  const revision = state.revision;
  if (state.mode!=="live" || state.liveRevision===revision) return;
@@ -206,8 +242,9 @@ async function refreshLive() {
  try {
   const [status,timing] = await Promise.all(["status","timing"].map(topic=>json(receiver+topic)));
   if (state.revision!==revision) return;
-  const age = (Date.now()-timestamp(status.datos?.lastMessageAt))/1000;
-  if (!status.vigente||!timing.vigente||status.datos?.isConnected!==true||!(age>=-5&&age<90)) throw Error("Datos antiguos");
+  const received = timestamp(timing.recibido_utc);
+  const age = ((Number.isFinite(received)?received:Date.now())-timestamp(status.datos?.lastMessageAt))/1000;
+  if (!status.vigente||!timing.vigente||status.datos?.isConnected!==true||!(age>=-20&&age<90)) throw Error("Datos antiguos");
   const data = timing.datos??{};
   const session = data.Session??data.SessionInfo??{};
   const part = practicePart(session.Name??session.SessionName) ||
@@ -218,31 +255,37 @@ async function refreshLive() {
    el("phaseStatus").textContent = "Puedes consultar entrenamientos anteriores en Histórico.";
    return;
   }
+  const id = String(session.Key??session.Path??[session.Meeting?.Key,session.StartDate,part].join("|"));
+  const prior = lastPractice?.id===id ? lastPractice : null;
   const rows = liveRows(data);
-  const phase = String(session.SessionStatus??"").toLowerCase();
-  const meeting = session.Meeting??{};
-  highlight(part);
-  el("status").textContent = [nombreSesion("Practice "+part),nombreGranPremio(meeting.Name), "Receptor actualizado hace "+Math.max(0,Math.round(age))+" s"].filter(Boolean).join(" · ");
-  el("phaseStatus").textContent = ({
-   started:"Sesión en directo.", active:"Sesión en directo.", inactive:"Sesión pendiente de comenzar.",
-   finished:"Sesión finalizada. Últimos datos del receptor.", finalised:"Sesión finalizada. Últimos datos del receptor.",
-   ended:"Sesión finalizada. Últimos datos del receptor.", aborted:"Sesión interrumpida.", suspended:"Sesión suspendida."
-  })[phase]??"Sesión identificada por el receptor.";
-  renderTiming(rows);
-  void renderMap(meeting.Location,meeting.Circuit?.ShortName,revision);
+  if (prior?.rows.some(row=>row.best!=null) && !rows.some(row=>row.best!=null)) {
+   renderSnapshot(prior,revision,false);
+   return;
+  }
+  if (!prior) clearPanels("Esperando el cronometraje de la sesión.");
+  const snapshot = {...prior,id,part,session,rows,receivedAt:Number.isFinite(received)?received:Date.now()};
+  savePractice(snapshot);
+  renderSnapshot(snapshot,revision,true);
   const [fia,weather,radios] = await Promise.allSettled(["race-control","weather","team-radio"].map(topic=>json(receiver+topic)));
   if (state.revision!==revision) return;
   const get = result => result.value?.vigente ? result.value.datos : null;
   const fiaData = get(fia);
   const radioData = get(radios);
-  renderEvents(fiaData ? list(fiaData.RaceControl??fiaData.Messages??fiaData) : null,rows);
-  renderWeather(get(weather));
-  renderRadios(radioData ? list(radioData.Captures??radioData) : null,rows,session.Path);
+  if (fiaData) snapshot.fia = list(fiaData.RaceControl??fiaData.Messages??fiaData);
+  if (get(weather)) snapshot.weather = get(weather);
+  if (radioData) snapshot.radios = list(radioData.Captures??radioData);
+  savePractice(snapshot);
+  renderEvents(snapshot.fia,rows);
+  renderWeather(snapshot.weather);
+  renderRadios(snapshot.radios,rows,session.Path);
  } catch {
   if (state.revision!==revision) return;
-  clearPanels("Esperando cronometraje de entrenamientos.");
-  el("status").textContent = "Sin datos recientes del receptor.";
-  el("phaseStatus").textContent = "Puedes consultar entrenamientos anteriores en Histórico.";
+  if (lastPractice) renderSnapshot(lastPractice,revision,false);
+  else {
+   clearPanels("Esperando cronometraje de entrenamientos.");
+   el("status").textContent = "Sin datos recientes del receptor.";
+   el("phaseStatus").textContent = "Volviendo a conectar automáticamente. También puedes consultar el histórico.";
+  }
  } finally {
   if (state.liveRevision===revision) state.liveRevision=null;
  }
@@ -260,7 +303,7 @@ function selectMeeting() {
   .sort((a,b)=>practicePart(a.session_name)-practicePart(b.session_name));
  setOptions(el("session"),sessions.map(session=>[session.session_key,nombreSesion(session.session_name)]),"Elige sesión");
  if (sessions.length) {
-  el("session").value = sessions.at(-1).session_key;
+  el("session").value = String(sessions.at(-1).session_key);
   void loadHistory();
  } else {
   ++state.revision;
@@ -297,7 +340,7 @@ async function loadSeason() {
   const meetings = new Map(sessions.map(session=>[session.meeting_key,session.location??session.country_name??"Gran Premio "+session.meeting_key]));
   setOptions(el("meeting"),[...meetings].map(([key,place])=>[key,nombreGranPremio(place+" Grand Prix")]),"Elige Gran Premio");
   if (meetings.size) {
-   el("meeting").value = sessions.at(-1).meeting_key;
+   el("meeting").value = String(sessions.at(-1).meeting_key);
    selectMeeting();
   } else {
    renderTiming([],"Todavía no hay sesiones finalizadas en esta temporada.");
@@ -350,7 +393,7 @@ function renderHistory(data,session,revision) {
  el("lapsPanel").hidden = !laps.length;
  if (laps.length) {
   setOptions(el("lapDriver"),rows.map(row=>[row.id,row.name]),"Elige piloto");
-  el("lapDriver").value = rows[0]?.id??"";
+  el("lapDriver").value = String(rows[0]?.id??"");
   renderLapDetails();
  }
 }
@@ -411,6 +454,7 @@ function switchMode(mode) {
   clearPanels("Consultando el cronometraje…");
   el("status").textContent="Consultando el receptor…";
   el("phaseStatus").textContent="En directo";
+  if (lastPractice) renderSnapshot(lastPractice,state.revision,false);
   void refreshLive();
  }
 }
@@ -424,5 +468,6 @@ el("year").onchange=loadSeason;
 el("meeting").onchange=selectMeeting;
 el("session").onchange=loadHistory;
 el("lapDriver").onchange=renderLapDetails;
+if (lastPractice) renderSnapshot(lastPractice,state.revision,false);
 void refreshLive();
 setInterval(refreshLive,8000);

@@ -168,10 +168,11 @@ async function renderMap(location, shortName, revision, sessionId) {
  const feature = features.find(item => [item.properties.location,item.properties.name]
   .map(normalize).some(name=>candidates.includes(name)));
  const points = feature?.geometry?.type==="LineString" ? feature.geometry.coordinates : [];
- circuit3D = points.length>1 ? {name:location||shortName,points} : null;
+ circuit3D = points.length>1 ? {name:location||shortName,points,id:feature.properties.id} : null;
  updateMap3D();
  if (points.length<2) {
   el("track").setAttribute("d","");
+ el("marks2D").replaceChildren();
   el("map").setAttribute("hidden","");
   label.textContent = (location||shortName)+" · Trazado no disponible.";
   return;
@@ -181,10 +182,14 @@ async function renderMap(location, shortName, revision, sessionId) {
  const minX=Math.min(...x), maxX=Math.max(...x), minY=Math.min(...y), maxY=Math.max(...y);
  const scale=Math.min(376/(maxX-minX),116/(maxY-minY));
  const offsetX=(400-(maxX-minX)*scale)/2, offsetY=(140-(maxY-minY)*scale)/2;
- const path=x.map((value,i)=>(i?"L":"M")+(offsetX+(value-minX)*scale).toFixed(1)+" "+(offsetY+(maxY-y[i])*scale).toFixed(1)).join(" ");
+ const planar=x.map((value,i)=>[value,y[i]]);
+ const project=([u,v])=>[offsetX+(u-minX)*scale,offsetY+(maxY-v)*scale];
+ const path=planar.map((point,i)=>(i?"L":"M")+project(point).map(value=>value.toFixed(1)).join(" ")).join(" ");
+ const marks=marcasCircuito(planar,feature.properties.id);
+ dibujarMarcasCircuito(el("marks2D"),marks,project,1,[379,23]);
  el("track").setAttribute("d",path);
  el("map").removeAttribute("hidden");
- label.textContent = (location||shortName)+" · Trazado del circuito. Posiciones GPS no disponibles.";
+ label.textContent = (location||shortName)+" · "+(marks.finish?"Meta aproximada y sentido de marcha. ":"Sentido de marcha. Meta sin referencia disponible. ")+"Posiciones GPS no disponibles.";
 }
 
 function clearPanels(message) {
@@ -198,6 +203,7 @@ function clearPanels(message) {
  el("lapsPanel").hidden = true;
  el("map").setAttribute("hidden","");
  el("track").setAttribute("d","");
+ el("marks2D").replaceChildren();
  el("mapNote").textContent = "Circuito sin identificar.";
  highlight(0);
 }
@@ -479,7 +485,7 @@ async function openMap3D() {
  el("map3DButton").setAttribute("aria-expanded","true");
  el("map3DPanel").scrollIntoView({block:"start",behavior:"smooth"});
  try {
-  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=2").then(module=>module.createMap3D(el,historical));
+  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=3").then(module=>module.createMap3D(el,historical));
   map3D = await map3DLoad;
   map3D.setContext(circuit3D,replayContext);
   if (!el("map3DPanel").hidden) map3D.show();

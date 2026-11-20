@@ -74,6 +74,20 @@ function positionAt(series,time) {
  return {position,direction};
 }
 
+function textSprite(label) {
+ const canvas=document.createElement("canvas");
+ canvas.width=128; canvas.height=56;
+ const ctx=canvas.getContext("2d");
+ ctx.fillStyle="#0d1726"; ctx.fillRect(0,0,128,56);
+ ctx.fillStyle="#ffffff"; ctx.font="bold 36px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+ ctx.fillText(label,64,29,120);
+ const texture=new THREE.CanvasTexture(canvas);
+ texture.colorSpace=THREE.SRGBColorSpace;
+ const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false}));
+ tag.scale.set(26,11,1);
+ return tag;
+}
+
 function carModel(color,label) {
  const car = new THREE.Group();
  const body = new THREE.MeshStandardMaterial({color,roughness:.62});
@@ -89,16 +103,9 @@ function carModel(color,label) {
  box(8,1.1,2,0,3.9,-5.6,body);
  box(2.2,1.4,2.4,0,3.2,-1.1,rubber);
  for (const x of [-3.8,3.8]) for (const z of [-4.2,4.2]) box(2.7,3.2,3.1,x,1.6,z,rubber);
- const canvas=document.createElement("canvas");
- canvas.width=128; canvas.height=56;
- const ctx=canvas.getContext("2d");
- ctx.fillStyle="#0d1726"; ctx.fillRect(0,0,128,56);
- ctx.fillStyle="#ffffff"; ctx.font="bold 36px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
- ctx.fillText(label,64,29,120);
- const texture=new THREE.CanvasTexture(canvas);
- texture.colorSpace=THREE.SRGBColorSpace;
- const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false}));
- tag.position.y=18; tag.scale.set(26,11,1); car.add(tag);
+ const tag=textSprite(label);
+ tag.position.y=18;
+ car.add(tag);
  return car;
 }
 
@@ -153,8 +160,20 @@ function canvasRenderer(track,fleet) {
    background.addColorStop(0,"#172737"); background.addColorStop(1,"#0a1322");
    ctx.fillStyle=background; ctx.fillRect(0,0,width,height);
 
+   const labels=[];
    for (const mesh of track.children) {
+    if (mesh.isSprite) {
+     labels.push([project(0,0,0,mesh,camera),mesh.material.map.image]);
+     continue;
+    }
     const attr=mesh.geometry.getAttribute("position");
+    if (mesh.userData.marker) {
+     const points=mesh.userData.marker.map(point=>project(...point,mesh,camera));
+     if (points.some(point=>Math.abs(point.z)>1)) continue;
+     ctx.beginPath(); trace(points);
+     ctx.fillStyle=mesh.material.color.getStyle(); ctx.fill();
+     continue;
+    }
     if (attr.count<48) continue;
     const left=[],right=[];
     for (let i=0;i<attr.count;i+=4) {
@@ -166,7 +185,7 @@ function canvasRenderer(track,fleet) {
     ctx.fill("evenodd");
    }
 
-   const faces=[], labels=[];
+   const faces=[];
    for (const car of fleet.children) {
     if (!car.visible) continue;
     for (const mesh of car.children) {
@@ -223,7 +242,7 @@ export function createMap3D(el,historical) {
  const grid=new THREE.GridHelper(1800,24,0x405466,0x293e50);
  grid.position.y=-2.8; scene.add(grid);
  const cars=new Map();
- let circuit, archived, previousContext, staticKey, mode="", curve, samples, duration=0, time=0;
+ let circuit, archived, previousContext, staticKey, mode="", curve, samples, duration=0, time=0, demoSense=1;
  let frame=0, lastFrame=0, visible=false, playing=false, job=0, previousFocus;
  let fallback;
 
@@ -245,19 +264,43 @@ export function createMap3D(el,historical) {
  new ResizeObserver(resize).observe(view);
  center();
 
- function setTrack(points) {
+ function setTrack(points,id,lap=false) {
   disposeGroup(track);
   curve=buildTrack(points);
   for (const [width,height,color] of [[28,0,0x546277],[20,.22,0x293749]]) {
    const material=new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.95});
    track.add(new THREE.Mesh(roadGeometry(curve,width,height),material));
   }
-  const start=curve.getPointAt(0);
-  const heading=curve.getTangentAt(0);
-  const marking=new THREE.Mesh(new THREE.BoxGeometry(19,.35,1.2),new THREE.MeshBasicMaterial({color:0xdfe9f5}));
-  marking.position.copy(start); marking.position.y+=.5;
-  marking.rotation.y=Math.atan2(heading.x,heading.z);
-  track.add(marking);
+  const marks=marcasCircuito(points.map(point=>[point.x,-point.z]),id,lap);
+  function paint(mark,outline,color) {
+   const [[x,y],[a,b],[c,d]]=mark;
+   const length=Math.hypot(c-a,d-b);
+   if (!length) return;
+   const dx=(c-a)/length, dy=(d-b)/length;
+   const elevation=points.reduce((nearest,point)=>
+    Math.hypot(point.x-x,point.z+y)<Math.hypot(nearest.x-x,nearest.z+y)?point:nearest,points[0]).y;
+   const vertices=outline.map(([u,v])=>[x+dx*u-dy*v,elevation+1.2,-(y+dy*u+dx*v)]);
+   const geometry=new THREE.BufferGeometry();
+   geometry.setAttribute("position",new THREE.Float32BufferAttribute(vertices.flat(),3));
+   if (vertices.length===4) geometry.setIndex([0,1,2,0,2,3]);
+   const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide}));
+   mesh.userData.marker=vertices;
+   track.add(mesh);
+  }
+  for(const arrow of marks.arrows) paint(arrow,[[8,0],[-6,-5],[-6,5]],0x72e4fa);
+  if (marks.finish) {
+   for(let row=0;row<6;row++) for(let col=0;col<2;col++) {
+    const u=col*3-3, v=row*4-12;
+    paint(marks.finish,[[u,v],[u+3,v],[u+3,v+4],[u,v+4]],(row+col)%2?0x172230:0xffffff);
+   }
+   const [x,y]=marks.finish[0];
+   const label=textSprite("META");
+   const elevation=points.reduce((nearest,point)=>
+    Math.hypot(point.x-x,point.z+y)<Math.hypot(nearest.x-x,nearest.z+y)?point:nearest,points[0]).y;
+   label.position.set(x,elevation+13,-y);
+   track.add(label);
+  }
+  return marks;
  }
 
  function setCars(list) {
@@ -292,7 +335,7 @@ export function createMap3D(el,historical) {
    if (!response.ok) throw Error("Circuitos no disponibles");
    return response.json();
   }).then(data=>data.features.find(item=>item.properties.location==="Las Vegas")).then(item=>({
-   name:"Las Vegas",points:item.geometry.coordinates
+   name:"Las Vegas",id:item.properties.id,points:item.geometry.coordinates
   })).catch(error=>{fallback=null;throw error;});
   return fallback;
  }
@@ -305,12 +348,14 @@ export function createMap3D(el,historical) {
    const radians=course.points[0][1]*Math.PI/180;
    const points=course.points.map(([x,y])=>new THREE.Vector3(x*Math.cos(radians)*10000,0,-y*10000));
    const project=normalizer(points);
-   setTrack(points.map(project));
+   const marks=setTrack(points.map(project),course.id);
    staticKey=course;
+   demoSense=marks.forward??1;
    mode=demo?"demo":"static";
    setCars(demo?DEMO_COLORS.map((color,index)=>({id:index+1,name:"Demo "+(index+1),color:color.toString(16)})):[]);
    setPlayback(demo?90:0);
-   info.textContent=course.name+(demo?" · Demostración 3D con coches ficticios.":" · Vista 3D del trazado. Selecciona una sesión histórica para cargar posiciones registradas.");
+   info.textContent=course.name+(demo?" · Demostración 3D con coches ficticios.":" · Vista 3D del trazado.")+
+    (marks.finish?" Damero: meta aproximada.":" Meta sin referencia disponible.")+" Flechas: sentido de marcha.";
    if (demo) { playing=true; syncTime(); }
    center();
   } catch {
@@ -345,13 +390,13 @@ export function createMap3D(el,historical) {
    const project=normalizer(points);
    samples=carsInWindow(raw,start,project);
    if (!samples.size) throw Error("No se recibieron posiciones de los coches para este tramo.");
-   setTrack(points.map(project));
+   setTrack(points.map(project),null,true);
    const names=new Map(rows.map(row=>[String(row.id),row]));
    setCars([...samples.keys()].map(id=>names.get(id)??{id,name:id}));
    setPlayback(lap.lap_duration);
    mode="replay";
    info.textContent="Repetición 3D · posiciones registradas por OpenF1 · vuelta "+lap.lap_number+" de "+(names.get(String(lap.driver_number))?.name??"coche "+lap.driver_number)+
-    " · "+samples.size+" pilotos con posiciones en el tramo.";
+    " · "+samples.size+" pilotos con posiciones en el tramo. Damero: meta aproximada. Flechas: sentido de marcha.";
    center();
    playing=true;
    syncTime();
@@ -379,8 +424,8 @@ export function createMap3D(el,historical) {
   for (const [id,car] of cars) {
    let pose;
    if (mode==="demo") {
-    const fraction=(time/42+index*.16+1)%1;
-    pose={position:curve.getPointAt(fraction),direction:curve.getTangentAt(fraction)};
+    const fraction=((demoSense*(time/42+index*.16))%1+1)%1;
+    pose={position:curve.getPointAt(fraction),direction:curve.getTangentAt(fraction).multiplyScalar(demoSense)};
    }
    if (mode==="replay") pose=positionAt(samples.get(id),time);
    car.visible=Boolean(pose);

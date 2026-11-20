@@ -151,7 +151,7 @@ tbody tr:hover{background:#30445b70}
 </style></head><body><header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
 <div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><button id="modeQual" type="button" onclick="window.location.href=&quot;./clasificacion.html&quot;">⏱️ Clasificación</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
 <div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
-<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><div class="circuit-map-wrap"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><g id="simDrivers" aria-label="Simulación visual de posición de pilotos, no GPS"></g><text id="simLabel" x="480" y="532" text-anchor="middle" fill="#ffcf83" font-size="15" font-weight="bold" visibility="hidden">SIMULACIÓN ILUSTRATIVA · NO ES GPS</text></svg><div id="weatherStrip" class="circuit-weather" aria-live="polite" hidden></div></div><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado calculado con GPS histórico</span><span class="key">● Coches simulados (no GPS); velocidad orientativa si hay tiempos</span></div></div></section>
+<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><div class="circuit-map-wrap"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><g id="marks2D" aria-label="Meta, sentido de marcha y norte"></g><g id="simDrivers" aria-label="Simulación visual de posición de pilotos, no GPS"></g><text id="simLabel" x="480" y="532" text-anchor="middle" fill="#ffcf83" font-size="15" font-weight="bold" visibility="hidden">SIMULACIÓN ILUSTRATIVA · NO ES GPS</text></svg><div id="weatherStrip" class="circuit-weather" aria-live="polite" hidden></div></div><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado · 🏁 Meta · ▸ Sentido de marcha</span><span class="key">● Coches simulados (no GPS); velocidad orientativa si hay tiempos</span></div></div></section>
 <section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Se mostrarán diez avisos aproximadamente. Desplázate con la rueda para consultar el resto.</div></div></section>
 <section class="panel limits-compact"><h2>🚧 LÍMITES DE PISTA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>DETECTADAS</th><th>V. ANULADAS</th><th>RIESGO ESTIMADO</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
 <section class="panel sectors-compact"><h2>⏱️ SECTORES · S1 / S2 / S3</h2><p class="info">Tiempos S1, S2 y S3. La diferencia con el líder y el GAP entre pilotos aparecen juntos en el cronometraje principal.</p><div class="scroll" style="max-height:270px"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody id="sectors"><tr><td colspan="5">Sin datos de sectores.</td></tr></tbody></table></div></section>
@@ -160,6 +160,7 @@ tbody tr:hover{background:#30445b70}
 <section class="panel" style="margin-top:12px"><h2>🎙️ RADIOS DE EQUIPO · AUDIO ORIGINAL</h2><p class="info">Comunicaciones del receptor. La traducción al español aún no está disponible: no se inventan transcripciones. Audio sujeto a disponibilidad y permisos de reproducción.</p><div id="radios"><div class="info">Selecciona En directo para consultar las radios.</div></div></section>
 </main><footer>RENEGADOS RACING LIVE · Datos históricos OpenF1 · Proyecto independiente · La disponibilidad del directo no está garantizada. · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
+<script src="./marcas-circuitos.js?v=1"></script>
 <script>
 "use strict";
 const BASE="https://renegados-f1-live.onrender.com", el=id=>document.getElementById(id);
@@ -174,7 +175,24 @@ let errors=d.errores_parciales||{},events=d.race_control||[];
 el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+esc(translate(e.message))+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
 el("state").textContent="Histórico recibido: "+rows.length+" pilotos · "+events.length+" avisos FIA. No es una carrera en directo.";
 }
-function draw(points){let vals=points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));if(vals.length<30)throw Error("No hay suficientes coordenadas GPS");let xs=vals.map(p=>p.x),ys=vals.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),width=Math.max(0.000000001,maxX-minX),height=Math.max(0.000000001,maxY-minY),scale=Math.min(860/width,460/height),offsetX=(960-width*scale)/2,offsetY=(550-height*scale)/2;let path=vals.map((p,i)=>(i?"L":"M")+(offsetX+(p.x-minX)*scale).toFixed(2)+" "+(550-offsetY-(p.y-minY)*scale).toFixed(2)).join(" ");el("outline").setAttribute("d",path);el("track").setAttribute("d",path);el("placeholder").textContent=""}
+function draw(points, circuitId) {
+ const vals=points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+ if(vals.length<30)throw Error("No hay suficientes coordenadas GPS");
+ const xs=vals.map(p=>p.x), ys=vals.map(p=>p.y);
+ const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+ const width=Math.max(1e-9,maxX-minX), height=Math.max(1e-9,maxY-minY);
+ const scale=Math.min(860/width,460/height), offsetX=(960-width*scale)/2, offsetY=(550-height*scale)/2;
+ const planar=vals.map(({x,y})=>[x,y]);
+ const project=([x,y])=>[offsetX+(x-minX)*scale,550-offsetY-(y-minY)*scale];
+ const path=planar.map((point,i)=>(i?"L":"M")+project(point).map(value=>value.toFixed(2)).join(" ")).join(" ");
+ el("outline").setAttribute("d",path);
+ el("track").setAttribute("d",path);
+ el("placeholder").textContent="";
+ const fullLap=Math.hypot(vals[0].x-vals.at(-1).x,vals[0].y-vals.at(-1).y)<=Math.max(width,height)*.07;
+ const marks=marcasCircuito(planar,circuitId,!circuitId&&fullLap);
+ dibujarMarcasCircuito(el("marks2D"),marks,project,1.85,circuitId?[910,69]:null);
+ return marks;
+}
 // Mapa aproximado: movimiento ilustrativo, no coordenadas ni telemetría GPS.
 let simulatedPilots=[],simRequest=0,simStartedAt=0,simSessionUpdatedAt=0,simLastFrame=0;
 function stopSimulatedPilots(){
@@ -245,6 +263,7 @@ function unsetLiveCircuit(message){
  el("liveCircuit").value="";
  el("outline").setAttribute("d","");
  el("track").setAttribute("d","");
+ el("marks2D").replaceChildren();
  el("placeholder").textContent="Circuito no identificado";
  el("mapStatus").textContent=message;
 }
@@ -309,8 +328,10 @@ async function loadLiveCircuit(){
  const factor=Math.cos(lat*Math.PI/180);
  const points=coords.map(p=>({x:p[0]*factor,y:p[1]}));
  try{
-  draw(points);
-  el("mapStatus").textContent=f.properties.name+" · "+points.length+" puntos cartográficos del trazado (GeoJSON, no GPS de coches). Fuente: SergioSediq/f1-circuits. Sin posiciones en directo verificadas.";
+  const marks=draw(points,f.properties.id);
+  el("mapStatus").textContent=f.properties.name+" · "+
+   (marks.finish?"Meta aproximada y sentido de marcha. ":"Sentido de marcha. Meta sin referencia disponible. ")+
+   "Sin posiciones en directo verificadas.";
  }catch(error){el("mapStatus").textContent="No se pudo dibujar el circuito: "+error.message}
 }
 
@@ -333,7 +354,7 @@ function changeMode(mode){
  for(const id of ["historyYearLabel","find","historyCircuitLabel","circuit","session","load"])el(id).hidden=live;
  el("liveSummary").hidden=!live;
  if(live){stopSimulatedPilots();clearCircuitWeather("Consultando meteorología…");el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
- else {stopSimulatedPilots();el("weatherStrip").hidden=true;el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
+ else {stopSimulatedPilots();el("marks2D").replaceChildren();el("weatherStrip").hidden=true;el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
 function pitStops(d){const value=d.NumberOfPitStops??d.PitStopCount??d.PitStopsCount??null;const n=Number(value);return value!==null&&value!==""&&Number.isInteger(n)&&n>=0&&n<30?String(n):"—"}
 function pitStatus(d){return d.InPit?"EN BOXES":d.PitOut?"SALIENDO":d.Retired?"RETIRADO":d.Stopped?"DETENIDO":"—"}

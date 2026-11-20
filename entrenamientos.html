@@ -26,7 +26,7 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 button[aria-pressed="true"]{border-color:#ff6b7b;background:#512632}
 select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;border-radius:8px;padding:8px}
 #historyControls[hidden]{display:none}.extras{display:grid;gap:12px}.scroll{max-height:680px}
-#map[hidden]{display:none}#map{display:block;width:100%;height:125px}#map path{fill:none;stroke:#ff7386;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+#map[hidden]{display:none}#map{display:block;width:100%;height:125px}#map #track{fill:none;stroke:#ff7386;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
 #weather,#radios,#limits,#laps {margin:10px 12px;color:#d9e8fa;font-size:12px}
 #radios,#limits,#laps{max-height:225px;overflow:auto}#radios p,#limits p{margin:6px 0}
 #fia{max-height:280px}.scroll td{padding-top:6px;padding-bottom:6px}
@@ -75,12 +75,13 @@ select{font:inherit;color:inherit;background:#24364c;border:1px solid #50627d;bo
 <div class="layout">
 <section class="panel"><h2>⏱️ ENTRENAMIENTOS · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>ÚLTIMA VUELTA</th><th>AL PRIMERO</th><th>AL ANTERIOR</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>VUELTAS</th><th>BOXES</th><th>ESTADO</th><th>KM/H</th></tr></thead><tbody id="timing"><tr><td colspan="15">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">S1–S3 muestran los últimos sectores recibidos en directo y los de la mejor vuelta en el histórico.</p></section>
 <aside class="extras"><section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section>
-<section class="panel"><h2>CIRCUITO Y METEOROLOGÍA</h2><svg id="map" viewBox="0 0 400 140" aria-label="Trazado del circuito" hidden><path id="track"></path></svg><p id="mapNote" class="note">Circuito sin identificar.</p><p id="weather">Sin datos meteorológicos.</p></section>
+<section class="panel"><h2>CIRCUITO Y METEOROLOGÍA</h2><svg id="map" viewBox="0 0 400 140" aria-label="Trazado del circuito" hidden><path id="track"></path><g id="marks2D" aria-label="Meta, sentido de marcha y norte"></g></svg><p id="mapNote" class="note">Circuito sin identificar.</p><p id="weather">Sin datos meteorológicos.</p></section>
 <section class="panel"><h2>LÍMITES DE PISTA</h2><div id="limits">Sin datos disponibles.</div></section>
 <section class="panel"><h2>RADIOS DE EQUIPO</h2><div id="radios">Sin grabaciones disponibles.</div></section>
 <section id="lapsPanel" class="panel" hidden><h2>VUELTAS POR PILOTO</h2><div id="laps"><label>Piloto <select id="lapDriver"></select></label><table><thead><tr><th>VUELTA</th><th>TIEMPO</th><th>S1</th><th>S2</th><th>S3</th><th>NEUM.</th></tr></thead><tbody id="lapTimes"></tbody></table></div></section>
 </aside></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de entrenamientos · Receptor comunitario y OpenF1 · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
-<script src="./entrenamientos.js?v=4"></script>
+<script src="./marcas-circuitos.js?v=1"></script>
+<script src="./entrenamientos.js?v=5"></script>
 </body></html>

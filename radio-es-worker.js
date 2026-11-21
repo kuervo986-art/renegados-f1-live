@@ -10,8 +10,13 @@ self.onmessage=async({data:{original,reviewed}})=>{
    self.postMessage({message:"Traduciendo al español…"});
    const translate=await pipeline("translation","Xenova/opus-mt-en-es",{dtype:"q8"});
    try {
-    const [{translation_text}]=await translate(original,{max_new_tokens:256});
-    translation=translation_text?.trim()??"";
+    const sentences=new Intl.Segmenter("en",{granularity:"sentence"}).segment(original);
+    const translated=[];
+    for(const {segment} of sentences) {
+     const [{translation_text}]=await translate(segment.trim(),{max_new_tokens:256});
+     if(translation_text?.trim()) translated.push(translation_text.trim());
+    }
+    translation=translated.join(" ");
    } finally {
     await translate.dispose();
    }

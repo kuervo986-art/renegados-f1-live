@@ -76,7 +76,7 @@ async function transcribe(clip,signal) {
 
 function createSpanishAudio(original,id,reviewed) {
  status.textContent=reviewed?"Generando el audio en español…":"Preparando la traducción y la voz en español…";
- worker=new Worker(new URL("./radio-es-worker.js?v=2",import.meta.url),{type:"module"});
+ worker=new Worker(new URL("./radio-es-worker.js?v=3",import.meta.url),{type:"module"});
  timer=setTimeout(()=>{
   if(id!==sequence) return;
   worker?.terminate();

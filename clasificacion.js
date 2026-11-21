@@ -22,6 +22,7 @@ let busy = false;
 let lastSnapshot;
 let meeting, displayedMeeting, circuits, map3DLoad, map3D;
 let trackFlags = {};
+let clocks;
 const snapshotKey = "renegados-clasificacion-ultima-v1";
 try {
  const saved = JSON.parse(sessionStorage.getItem(snapshotKey) ?? "null");
@@ -50,13 +51,13 @@ async function liveData() {
  throw Error("Sin datos recientes");
 }
 
-function sessionStart(session) {
+function sessionDate(session,key) {
  const offset = String(session.GmtOffset ?? "").match(/^[+-]\d{2}:\d{2}/)?.[0] ?? "Z";
- return timestamp(String(session.StartDate ?? "")+offset);
+ return timestamp(String(session[key] ?? "")+offset);
 }
 
 function renderFia(events,session,online) {
- const start = sessionStart(session);
+ const start = sessionDate(session,"StartDate");
  const messages = Object.values(events ?? {})
   .filter(event=>timestamp(event.Utc ?? event.timestamp)>=start-15*60*1000)
   .sort((a,b)=>timestamp(a.Utc ?? a.timestamp)-timestamp(b.Utc ?? b.timestamp));
@@ -105,7 +106,39 @@ function bestSectorTimes(data,previous={}) {
  return result;
 }
 
-function render({data,events,receivedAt,bestSectors},online) {
+function renderClocks() {
+ if (!clocks) return;
+ const {clock,phase,complete,status,online,durations,end} = clocks;
+ const now = Date.now();
+ for (let round=1;round<=3;round++) {
+  const target=get("clock"+round);
+  let time=durations[round-1]*1000;
+  let hint="Duración prevista de la ronda";
+  let estimated=false;
+  if (round<phase || (round===phase && (complete || clock?.closed && clock.phase===round))) {
+   time=0;
+   hint="Ronda terminada";
+  } else if (round===phase) {
+   time=null;
+   hint="Esperando un aviso de la FIA para calcular el tiempo";
+   if (online && clock?.phase===round && (status!=="suspended" || clock.runningSince===null)) {
+    const paused=clock.runningSince===null;
+    time=clock.remaining-(paused ? 0 : Math.max(0,now-clock.runningSince));
+    hint=paused ? "Tiempo estimado · reloj en pausa" : "Tiempo restante estimado a partir de los avisos FIA";
+    estimated=true;
+   }
+  }
+  const text=time===null ? "—" : formatCountdown(time)+(estimated ? " est." : "");
+  if (target.textContent!==text) target.textContent=text;
+  target.title=hint;
+ }
+ const total=get("sessionClock");
+ const text=complete ? "0:00" : Number.isFinite(end) ? now>=end ? "Superado" : formatCountdown(end-now) : "—";
+ if (total.textContent!==text) total.textContent=text;
+ total.title=complete ? "Clasificación finalizada" : "Cuenta atrás hasta el cierre programado";
+}
+
+function render({data,events,receivedAt,bestSectors,clockMessages},online) {
  const session = data.Session;
  if (session.Meeting && (!meeting || meeting.Key!==session.Meeting.Key || meeting.Location!==session.Meeting.Location)) {
   meeting = session.Meeting;
@@ -124,8 +157,13 @@ function render({data,events,receivedAt,bestSectors},online) {
  const timedPhase = leaders.findLastIndex(Number.isFinite)+1;
  const explicitPhase = [session.QualifyingPart,session.Part,session.QualifyingSession,session.Segment]
   .map(value=>String(value ?? "").match(/^(?:S?Q)?([123])$/i)?.[1]).find(Boolean);
- const phase = pending ? 0 : Math.max(Number(explicitPhase)||0,timedPhase,1);
+ const durations = qualifyingDurations(session);
+ const clock = pending ? null : estimatedQualifyingClock(clockMessages ?? clockEvents(events),sessionDate(session,"StartDate"),durations);
+ const phase = pending ? 0 : Math.max(Number(explicitPhase)||0,timedPhase,clock?.phase ?? 1);
  const complete = /^(?:finali[sz]ed|ended)$/.test(status) || (status==="finished" && phase===3);
+ const roundEnded = status==="finished" || clock?.phase===phase && clock.closed;
+ clocks = {clock,phase,complete,status,online,durations,end:sessionDate(session,"EndDate")};
+ renderClocks();
  const q1Cutoff = rows.length>=20 ? Math.ceil((rows.length+10)/2) : 16;
  const cutoff = phase===1 ? q1Cutoff : phase===2 ? 10 : 0;
  const enoughTimes = cutoff>=10 && rows.filter(row=>row.times[phase-1]).length>=cutoff;
@@ -134,7 +172,7 @@ function render({data,events,receivedAt,bestSectors},online) {
   (online ? "Actualizado a las " : "Últimos datos recibidos a las ")+timeFormat.format(receivedAt)].filter(Boolean).join(" · ");
  for(let round=1;round<=3;round++){
   get("phase"+round).classList.toggle("on",round===phase);
-  get("info"+round).textContent = round>phase ? "Pendiente" : (round<phase || complete || status==="finished") ? "Finalizada" :
+  get("info"+round).textContent = round>phase ? "Pendiente" : (round<phase || complete || roundEnded) ? "Finalizada" :
    round===timedPhase ? "Última ronda con tiempos" : "Esperando vueltas";
  }
  get("phaseStatus").textContent = !online ? "Mostrando la última clasificación recibida." :
@@ -142,7 +180,7 @@ function render({data,events,receivedAt,bestSectors},online) {
   complete ? "Clasificación finalizada." :
   status==="aborted" ? "Ronda interrumpida." :
   status==="suspended" ? "Ronda suspendida." :
-  status==="finished" ? "Ronda terminada. Esperando confirmación de los eliminados o el inicio de la siguiente ronda." :
+  roundEnded ? "Ronda terminada. Esperando confirmación de los eliminados o el inicio de la siguiente ronda." :
   "Las posiciones en zona de eliminación son provisionales.";
 
  get("timing").innerHTML = rows.map(({driver,times,position})=>{
@@ -154,7 +192,9 @@ function render({data,events,receivedAt,bestSectors},online) {
   const gap = time ? seconds(time)-leaders[phase-1] : null;
   const stints = Object.values(driver.Stints ?? {});
   const compound = (stints.at(-1)?.Compound ?? driver.Compound ?? "").toUpperCase();
-  const state = confirmed ? "Eliminado en Q"+eliminated : danger ? "En zona de eliminación" : "—";
+  const elimination = confirmed ? "Eliminado en Q"+eliminated : danger ? "En zona de eliminación" : null;
+  const pit = pending || complete ? null : driver.PitOut===true ? "Saliendo de boxes" : driver.InPit===true ? "En boxes" : null;
+  const state = [pit,elimination].filter(Boolean).join(" · ") || "—";
   const color = /^[a-f\d]{6}$/i.test(driver.TeamColour ?? "") ? "#"+driver.TeamColour : "#8294b1";
   const tyreColor = !pending ? tyreColors[compound] : null;
   const sectors = sectorTimes[driver.RacingNumber] ?? [null,null,null];
@@ -164,6 +204,8 @@ function render({data,events,receivedAt,bestSectors},online) {
   return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
    cells.map((value,index)=>{
     if (index===7 && tyreColor) return '<td style="color:'+tyreColor+'">'+esc(value)+'</td>';
+    if (index===11 && pit) return '<td><span class="pit-state">'+esc(pit)+'</span>'+
+     (elimination ? ' · '+esc(elimination) : '')+'</td>';
     const best = index>=8 && index<=10 && sectors[index-8]===sectorLeaders[index-8];
     return '<td'+(best?' class="best-sector" title="Mejor tiempo del sector"':'')+'>'+esc(value)+'</td>';
    }).join("")+'</tr>';
@@ -233,12 +275,13 @@ async function refresh() {
   }
   const receivedAt = Date.now();
   const prior = lastSnapshot?.data.Session.Key===data.Session.Key ? lastSnapshot : null;
-  const snapshot = {data,receivedAt,events:prior?.events,bestSectors:bestSectorTimes(data,prior?.bestSectors)};
+  const snapshot = {data,receivedAt,events:prior?.events,clockMessages:prior?.clockMessages,bestSectors:bestSectorTimes(data,prior?.bestSectors)};
   render(snapshot,true);
   try {
    const fia = await read(base,"race-control");
    snapshot.events = fia.RaceControl ?? fia.Messages;
-   renderFia(snapshot.events,data.Session,true);
+   snapshot.clockMessages = clockEvents(snapshot.events,prior?.clockMessages);
+   render(snapshot,true);
   } catch {}
   if (String(data.Session.SessionStatus).toLowerCase()!=="inactive") {
    lastSnapshot = snapshot;
@@ -271,3 +314,4 @@ get("refresh").onclick = refresh;
 if (lastSnapshot) render(lastSnapshot,false);
 void refresh();
 setInterval(refresh,5000);
+setInterval(renderClocks,1000);

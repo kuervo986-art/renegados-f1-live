@@ -183,6 +183,7 @@ function render({data,events,receivedAt,bestSectors,clockMessages},online) {
   roundEnded ? "Ronda terminada. Esperando confirmación de los eliminados o el inicio de la siguiente ronda." :
   "Las posiciones en zona de eliminación son provisionales.";
 
+ const seenDividers = new Set();
  get("timing").innerHTML = rows.map(({driver,times,position})=>{
   const eliminated = pending || driver.KnockedOut!==true || !position ? 0 :
    position>q1Cutoff ? 1 : position>10 ? 2 : 0;
@@ -203,7 +204,14 @@ function render({data,events,receivedAt,bestSectors,clockMessages},online) {
   const cells = [position,driver.Tla ?? driver.BroadcastName ?? driver.RacingNumber,driver.TeamName,
    ...times,gap===null ? null : gap===0 ? "Líder" : "+"+gap.toFixed(3),!pending ? tyreNames[compound] : null,
    ...sectors.map(value=>value?.toFixed(3)),state];
-  return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
+  const group = confirmed ? "q"+eliminated : danger ? "provisional" : "";
+  let divider = "";
+  if (group && !seenDividers.has(group)) {
+   seenDividers.add(group);
+   const label = confirmed ? "Eliminados en Q"+eliminated : "Corte provisional · Q"+phase;
+   divider = '<tr class="elimination-divider" data-group="'+group+'"><td colspan="12">'+label+'</td></tr>';
+  }
+  return divider+'<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
    cells.map((value,index)=>{
     if (index===7 && tyreColor) {
      const badge = tyreState ? '<span class="tyre-state" title="Estado del juego al montarlo">'+tyreState+'</span>' : "";

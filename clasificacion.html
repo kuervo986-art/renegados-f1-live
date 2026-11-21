@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RENEGADOS RACING LIVE · Clasificación</title>
+<link rel="stylesheet" href="./panel-fia.css?v=1">
 <style>
 :root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#090d14;color:#eef3fc}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1e2e43,#090d14 75%)}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 2%;background:#151f2f;border-bottom:2px solid #f14b63}
@@ -14,22 +15,6 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 #timing .best-sector{background:#512e73;color:#f1d4ff;font-weight:700}
 #timing tr[data-team-color] td:nth-child(2){border-left:4px solid var(--team-color,#8294b1);padding-left:10px}
 
-/* Código de color FIA: solo color, sin modificar tamaños ni distribución */
-#fia article.fia-green{border-left:4px solid #42d884}
-#fia article.fia-yellow{border-left:4px solid #ffd34f}
-#fia article.fia-red{border-left:4px solid #ff5268}
-#fia article.fia-blue{border-left:4px solid #60abff}
-#fia article.fia-white{border-left:4px solid #e9f0ff}
-#fia article.fia-black{border-left:4px solid #818b9e}
-#fia article.fia-checkered{border-left:4px solid #d6dae4}
-#fia article.fia-other{border-left:4px solid #425b7b}
-#fia article.fia-green .flag{color:#42d884}
-#fia article.fia-yellow .flag{color:#ffd34f}
-#fia article.fia-red .flag{color:#ff5268}
-#fia article.fia-blue .flag{color:#60abff}
-#fia article.fia-white .flag{color:#e9f0ff}
-#fia article.fia-black .flag{color:#c0c7d3}
-#fia article.fia-checkered .flag{color:#e4e8f1}
 #map3DButton{border-color:#8b5368}
 #map3DPanel{margin:0 0 12px}#map3DPanel[hidden]{display:none}
 .map3d-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px}
@@ -85,4 +70,5 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 <script src="./f1-es.js?v=6"></script>
 <script src="./marcas-circuitos.js?v=1"></script>
 <script src="./reloj-clasificacion.js?v=1"></script>
-<script src="./clasificacion.js?v=7"></script></body></html>
+<script src="./panel-fia.js?v=1"></script>
+<script src="./clasificacion.js?v=8"></script></body></html>

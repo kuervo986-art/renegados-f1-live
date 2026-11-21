@@ -1,0 +1,17 @@
+/* Código de color FIA: solo color, sin modificar tamaños ni distribución */
+#fia article.fia-green{border-left:4px solid #42d884}
+#fia article.fia-yellow{border-left:4px solid #ffd34f}
+#fia article.fia-red{border-left:4px solid #ff5268}
+#fia article.fia-blue{border-left:4px solid #60abff}
+#fia article.fia-white{border-left:4px solid #e9f0ff}
+#fia article.fia-black{border-left:4px solid #818b9e}
+#fia article.fia-checkered{border-left:4px solid #d6dae4}
+#fia article.fia-other{border-left:4px solid #425b7b}
+#fia article.fia-green .flag{color:#42d884}
+#fia article.fia-yellow .flag{color:#ffd34f}
+#fia article.fia-red .flag{color:#ff5268}
+#fia article.fia-blue .flag{color:#60abff}
+#fia article.fia-white .flag{color:#e9f0ff}
+#fia article.fia-black .flag{color:#c0c7d3}
+#fia article.fia-checkered .flag{color:#e4e8f1}
+.fia-empty{padding:11px;color:#aac0d9;font-size:12px}

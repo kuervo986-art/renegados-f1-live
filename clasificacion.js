@@ -17,7 +17,6 @@ const seconds = value => {
 };
 const tyreNames = {SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"};
 const tyreColors = {SOFT:"#ff7e88",MEDIUM:"#ffd275",HARD:"#f5f5f5",INTERMEDIATE:"#70e6aa",WET:"#83bfff"};
-const flagNames = {green:"Bandera verde",yellow:"Bandera amarilla",red:"Bandera roja",blue:"Bandera azul",white:"Bandera blanca",black:"Bandera negra / advertencia",checkered:"Bandera a cuadros"};
 let busy = false;
 let lastSnapshot;
 let meeting, displayedMeeting, circuits, map3DLoad, map3D;
@@ -58,37 +57,11 @@ function sessionDate(session,key) {
 
 function renderFia(events,session,online) {
  const start = sessionDate(session,"StartDate");
- const messages = Object.values(events ?? {})
-  .filter(event=>timestamp(event.Utc ?? event.timestamp)>=start-15*60*1000)
-  .sort((a,b)=>timestamp(a.Utc ?? a.timestamp)-timestamp(b.Utc ?? b.timestamp));
+ const messages = fiaChronology(events,start-15*60*1000);
  trackFlags = online && !/^(?:inactive|finali[sz]ed|ended)$/i.test(session.SessionStatus)
   ? flagsBySector(messages) : {};
  map3D?.setRaceFlags(trackFlags);
- get("fia").innerHTML = messages.slice(-60).reverse().map(event=>{
-   const tone = fiaTone(event);
-   return '<article class="fia-'+tone+'"><time>'+esc(timeFormat.format(timestamp(event.Utc ?? event.timestamp)))+'</time>'+
-    '<div class="flag">'+esc(flagNames[tone] ?? "Dirección de carrera")+'</div>'+
-    mensajeFiaHtml(event.Message ?? event.message ?? "Aviso",esc)+'</article>';
-  }).join("") || '<p class="note">Sin avisos de esta sesión.</p>';
-}
-
-function flagsBySector(messages) {
- const flags = {};
- for (const event of messages) {
-  if (event.Category!=="Flag") continue;
-  const scope = event.Scope;
-  const key = scope==="Track" ? "track" : scope==="Sector" && Number(event.Sector)>0 ? Number(event.Sector) : null;
-  if (key===null) continue;
-  const flag = String(event.Flag).toUpperCase();
-  if (flag==="CLEAR" || flag==="GREEN") {
-   if (key==="track") {
-    for (const active of Object.keys(flags)) delete flags[active];
-   } else delete flags[key];
-  } else if (key!=="track" || ["YELLOW","DOUBLE YELLOW","RED","CHEQUERED"].includes(flag)) {
-   flags[key] = flag;
-  }
- }
- return flags;
+ paintFiaPanel(get("fia"),messages,esc);
 }
 
 function bestSectorTimes(data,previous={}) {

@@ -658,11 +658,11 @@ export function createMap3D(el,historical) {
    const changed=previousContext!==key;
    previousContext=key;
    archived=nextArchived;
-   const circuitChanged=circuit?.name!==nextCircuit?.name;
+   const circuitChanged=circuit?.id!==nextCircuit?.id || circuit?.name!==nextCircuit?.name;
    circuit=nextCircuit;
-   if (changed) {++job; mode=""; staticKey=null;}
+   if (changed || circuitChanged) {++job; mode=""; staticKey=null;}
    if (!archived?.laps?.length||changed) el("map3DReplay").disabled=!archived?.laps?.length;
-   if (visible && (changed || (circuitChanged && mode==="static"))) void staticTrack();
+   if (visible && (changed || circuitChanged)) void staticTrack();
   },
   show() {
    visible=true; resize();

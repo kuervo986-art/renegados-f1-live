@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RENEGADOS RACING LIVE · Muro de boxes</title><style>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RENEGADOS RACING LIVE · Muro de boxes</title><link rel="stylesheet" href="./panel-fia.css?v=1"><style>
 :root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#090d14;color:#e9f2ff}*{box-sizing:border-box}body{margin:0}header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;padding:14px 2%;border-bottom:2px solid #ee3d55;background:#141c29}h1{font-size:22px;margin:0;letter-spacing:.07em}h1 b{color:#f84a64}small,.dim{color:#9aacc4}a{color:#ff8796}button,select{background:#253349;border:1px solid #53617b;border-radius:7px;color:#fff;padding:9px 12px;font:inherit}button{cursor:pointer}button.primary{background:#dc4056;border-color:#dc4056}main{padding:12px 1.5%}.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.status{padding:9px 12px;border:1px solid #80652e;border-radius:8px;background:#2c241b;color:#ffd488;flex:1;min-width:230px}.layout{display:grid;grid-template-columns:minmax(340px,1.15fr) minmax(370px,1.65fr) minmax(255px,.8fr);gap:12px;align-items:start}.panel{background:#141e2d;border:1px solid #2d3e56;border-radius:11px;min-width:0;overflow:hidden}.panel h2{font-size:14px;margin:0;padding:14px 13px;border-bottom:1px solid #304059}.inside{padding:12px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}td,th{padding:9px 7px;text-align:left;border-bottom:1px solid #2c3a4d}th{color:#a4b9d3;background:#1e293a;font-size:11px}.timing{max-height:calc(100vh - 198px);overflow:auto}#map{background:#080e16;width:100%;height:470px;display:block;border-radius:8px}#fia{height:640px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5d7897 #141e2d}#fia article{padding:13px 10px;border-bottom:1px solid #304059;min-height:64px;font-size:12px}#fia time{color:#94aac7;font-size:11px}.flag{color:#ffbf69;font-weight:bold}.info{padding:10px;color:#a3b5ce;font-size:12px}.legend{display:flex;gap:14px;flex-wrap:wrap}.key{font-size:12px;color:#a6b9cf}footer{padding:20px;text-align:center;color:#8196b3;font-size:11px}@media(max-width:1100px){.layout{grid-template-columns:1fr 1fr}.fiaCol{grid-column:span 2}#fia{height:320px}}@media(max-width:720px){.layout{grid-template-columns:1fr}.fiaCol{grid-column:span 1}.timing{max-height:440px}#map{height:350px}}
 
 .pos-up{color:#65e5a0;font-weight:700}.pos-down{color:#ff8392;font-weight:700}.pos-delta{display:inline-block;margin-left:5px;font-size:11px}.changed-up{animation:riseFlash 2.3s ease-out}.changed-down{animation:fallFlash 2.3s ease-out}@keyframes riseFlash{from{background:#12543c}to{background:transparent}}@keyframes fallFlash{from{background:#612b38}to{background:transparent}}@media(prefers-reduced-motion:reduce){.changed-up,.changed-down{animation:none}}
@@ -33,15 +33,15 @@ tbody tr:hover{background:#30445b70}
 .tyre-pill,.pit-pill{display:inline-block;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:750}
 .tyre-soft{background:#792d3b;color:#ffe0e4}.tyre-medium{background:#635021;color:#ffdf80}.tyre-hard{background:#c9d1df;color:#1c2939}.tyre-inter{background:#1c5944;color:#a9ffd8}.tyre-wet{background:#1d477b;color:#b6dcff}.tyre-unknown{color:#8fa2bd}
 .pit-active{background:#6b4219;color:#ffe1ab}.pit-out{background:#184f4a;color:#a4f7e2}
-#fia{background:#0d1725;scrollbar-width:thin}
-#fia article{border-left:3px solid #405370;margin:4px 5px;padding:11px 12px;border-radius:4px;background:#ffffff05}
-#fia article:hover{background:#24334b}
+#fia{padding:8px;scrollbar-width:thin;overflow-wrap:anywhere}
+#fia article{margin:0;padding:10px;border-bottom:1px solid #34455f;border-radius:0;background:transparent;font-size:12px}
+#fia article:hover{background:#ffffff05}
 #map{background:radial-gradient(circle at center,#121e2b,#080d16);border:1px solid #293e53}
 #track{filter:drop-shadow(0 0 7px #ef3e5688)}
 @media(max-width:1180px){.layout{grid-template-columns:1fr 1fr}.fiaCol{grid-column:span 2}#fia{height:340px}}
 @media(max-width:750px){.layout{grid-template-columns:minmax(0,1fr)}.fiaCol{grid-column:span 1}.controls{align-items:stretch}header{padding:13px 3%}.panel h2{font-size:12px}}
 #liveSummary{display:flex;align-items:center;gap:9px 14px;flex-wrap:wrap}#liveSummary[hidden]{display:none}#liveSummary .live-title{font-size:12px;white-space:nowrap}#liveSummary #liveMeta{margin:0;padding:0;font-size:11px;flex:1 1 340px}#liveSummary label{font-size:12px;display:inline-flex;align-items:center;gap:8px}#liveSummary select{max-width:340px;min-width:170px;padding:7px 9px}#liveSummary button{padding:7px 10px;font-size:12px}#liveSummary small{font-size:10px;flex:1 1 200px}@media(max-width:750px){#liveSummary{align-items:stretch}#liveSummary label{flex-wrap:wrap}#liveSummary select{max-width:100%}}
-#fia{height:465px;max-height:465px;overflow-y:auto}#fia article{min-height:82px;box-sizing:border-box}@media(max-width:750px){#fia{height:465px;max-height:465px}}
+#fia{height:465px;max-height:465px;overflow-y:auto}#fia article{min-height:0}@media(max-width:750px){#fia{height:465px;max-height:465px}}
 .layout>.limits-compact{grid-column:2;grid-row:2;align-self:start}.limits-compact h2{padding:9px 12px;font-size:12px}.limits-compact #limitsInfo{font-size:10px;line-height:1.35;padding:7px 10px;margin:0}.limits-compact .scroll{max-height:165px!important}.limits-compact th,.limits-compact td{padding:6px 9px;font-size:11px}.limits-compact th{font-size:9px}@media(max-width:1180px){.layout>.limits-compact{grid-column:2;grid-row:auto}}@media(max-width:750px){.layout>.limits-compact{grid-column:1}}
 
 .layout-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin:0 0 9px;color:#a6b9cf;font-size:11px}.layout-toolbar button{padding:6px 10px;font-size:11px}
@@ -125,34 +125,51 @@ tbody tr:hover{background:#30445b70}
 #dashboardGrid>.panel.limits-compact th,#dashboardGrid>.panel.sectors-compact th{height:24px;padding:4px 8px}
 #dashboardGrid>.panel.limits-compact td,#dashboardGrid>.panel.sectors-compact td{height:27px;padding:4px 8px}
 
-/* Código de color FIA: solo color, sin modificar tamaños ni distribución */
-#fia article.fia-green{border-left:4px solid #42d884}
-#fia article.fia-yellow{border-left:4px solid #ffd34f}
-#fia article.fia-red{border-left:4px solid #ff5268}
-#fia article.fia-blue{border-left:4px solid #60abff}
-#fia article.fia-white{border-left:4px solid #e9f0ff}
-#fia article.fia-black{border-left:4px solid #818b9e}
-#fia article.fia-checkered{border-left:4px solid #d6dae4}
-#fia article.fia-other{border-left:4px solid #425b7b}
-#fia article.fia-green .flag{color:#42d884}
-#fia article.fia-yellow .flag{color:#ffd34f}
-#fia article.fia-red .flag{color:#ff5268}
-#fia article.fia-blue .flag{color:#60abff}
-#fia article.fia-white .flag{color:#e9f0ff}
-#fia article.fia-black .flag{color:#c0c7d3}
-#fia article.fia-checkered .flag{color:#e4e8f1}
-
 /* Meteo superpuesta en el circuito: conserva tamaños y orden de los paneles */
 .circuit-map-wrap{position:relative}
 .circuit-weather{position:absolute;top:9px;left:9px;right:9px;display:flex;flex-wrap:wrap;gap:5px;pointer-events:none}
 .circuit-weather[hidden]{display:none}
 .circuit-weather .wx{background:rgba(12,22,36,.93);border:1px solid #3c536c;border-radius:6px;padding:5px 7px;font-size:10px;color:#c1cfe0;white-space:nowrap}
 .circuit-weather .wx strong{font-size:12px;color:#f3f7ff;margin-left:4px}
-</style></head><body><header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
-<div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><button id="modeQual" type="button" onclick="window.location.href=&quot;./clasificacion.html&quot;">⏱️ Clasificación</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
-<div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="8">Selecciona una clasificación.</td></tr></tbody></table></div></section>
-<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><div class="circuit-map-wrap"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><g id="marks2D" aria-label="Meta, sentido de marcha y norte"></g><g id="simDrivers" aria-label="Simulación visual de posición de pilotos, no GPS"></g><text id="simLabel" x="480" y="532" text-anchor="middle" fill="#ffcf83" font-size="15" font-weight="bold" visibility="hidden">SIMULACIÓN ILUSTRATIVA · NO ES GPS</text></svg><div id="weatherStrip" class="circuit-weather" aria-live="polite" hidden></div></div><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado · 🏁 Meta · ▸ Sentido de marcha</span><span class="key">● Coches simulados (no GPS); velocidad orientativa si hay tiempos</span></div></div></section>
-<section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Se mostrarán diez avisos aproximadamente. Desplázate con la rueda para consultar el resto.</div></div></section>
+#map3DButton{border-color:#8b5368}
+#map3DPanel{margin:0 0 12px}#map3DPanel[hidden]{display:none}
+.map3d-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px}
+.map3d-toolbar label{font-size:13px}.map3d-toolbar button{padding:7px 10px;font-size:13px}
+#map3DViewport{height:clamp(275px,51vh,580px);position:relative;background:#0a1221;overflow:hidden}
+#map3DViewport canvas{display:block;width:100%;height:100%}
+#map3DTime{flex:1;min-width:120px}#map3DClock{min-width:108px;font-variant-numeric:tabular-nums;font-size:12px}
+#map3DEnvironment{margin:0;padding:4px 12px}#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
+
+.tyre-state{margin-left:5px;color:#d1dced;background:#27374e;border-radius:4px;padding:1px 4px;font-size:10px}.best-sector{background:#512e73;color:#f1d4ff;font-weight:700}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}
+</script></head><body><header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>CENTRO DE CONTROL · MONITOR PROFESIONAL · ESPAÑOL</small></div><div><a href="./repeticion.html">Repetición clásica</a> · <a href="./directo.html">Monitor directo</a> · <a href="./">Inicio</a></div></header><main>
+<div class="controls"><button id="modeHistory" class="primary" type="button">Histórico</button><button id="modeLive" type="button">En directo</button><button id="modeQual" type="button" onclick="window.location.href=&quot;./clasificacion.html&quot;">⏱️ Clasificación</button><label id="historyYearLabel">Temporada <select id="year"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></label><button class="primary" id="find">Buscar Grandes Premios</button><label id="historyCircuitLabel">Circuito <select id="circuit"><option value="">Primero busca una temporada</option></select></label><select id="session" aria-label="Sesión"><option value="">Selecciona sesión</option></select><button id="load">Cargar datos</button><button id="map3DButton" type="button" aria-controls="map3DPanel" aria-expanded="false">Abrir mapa 3D</button><span id="state" class="status" role="status">Modo histórico: no se muestran posiciones de coches inventadas.</span></div>
+<div id="liveSummary" class="panel" hidden style="padding:9px 13px;margin-bottom:10px"><strong class="live-title">🏎️ DATOS DE CARRERA EN DIRECTO</strong><p id="liveMeta" class="info" role="status">Esperando conexión con el proveedor.</p><label>Mapa de circuito <select id="liveCircuit"><option value="">Cargando circuitos…</option></select></label> <button id="liveMap" type="button">Cargar trazado</button> <button id="liveRefresh" type="button">Actualizar ahora</button> <small>Comprobación automática cada 5 segundos. El proveedor puede no ofrecer una carrera en directo.</small></div><section id="map3DPanel" class="panel" aria-labelledby="map3DTitle" hidden>
+<h2 id="map3DTitle">Circuito en 3D</h2>
+<div class="map3d-toolbar">
+<button id="map3DReplay" type="button" hidden disabled>Repetir con datos reales</button>
+<button id="map3DDemo" type="button">Probar demostración</button>
+<button id="map3DCenter" type="button" aria-pressed="true">Cámara general</button>
+<button id="map3DChase" type="button" aria-pressed="false" disabled>Seguir coche</button>
+<label>Piloto <select id="map3DDriver"><option value="">Vista general</option></select></label>
+<button id="map3DClose" type="button">Cerrar 3D</button>
+</div>
+<p id="map3DStatus" role="status">Preparando el circuito…</p>
+<p id="map3DFlags" class="info" aria-live="polite" hidden></p>
+<div id="map3DViewport" aria-label="Vista tridimensional del circuito"></div>
+<p id="map3DEnvironment" class="note" hidden>Carril de boxes en azul · Edificios con alturas aproximadas · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap</a> · <a href="./las-vegas-entorno.osm.json">Datos del entorno (ODbL)</a></p>
+<div class="map3d-toolbar">
+<button id="map3DPlay" type="button" disabled>Reproducir</button>
+<label>Velocidad <select id="map3DSpeed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+<input id="map3DTime" type="range" min="0" max="1" step="0.1" value="0" aria-label="Tiempo de la repetición" disabled>
+<output id="map3DClock">00:00 / 00:00</output>
+</div>
+</section>
+<div class="layout-toolbar"><span>Arrastra los paneles desde su título para ordenarlos.</span><button type="button" id="swapLower">⇄ Intercambiar límites / sectores</button><button type="button" id="resetLayout">Restablecer distribución</button></div><div class="layout" id="dashboardGrid"><section class="panel"><h2>⏱️ CRONOMETRAJE · CARRERAS Y CLASIFICACIONES</h2><div class="timing scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>DIFERENCIA</th><th>GAP ANTERIOR</th><th>MEJOR</th><th>NEUM.</th><th>PARADAS</th><th>BOXES</th></tr></thead><tbody id="timing"><tr><td colspan="9">Selecciona una sesión.</td></tr></tbody></table></div></section>
+<section class="panel"><h2>📍 CIRCUITO Y LOCALIZACIÓN</h2><div class="inside"><div class="circuit-map-wrap"><svg id="map" viewBox="0 0 960 550" preserveAspectRatio="xMidYMid meet" aria-label="Mapa del circuito reconstruido con coordenadas reales"><text x="480" y="268" text-anchor="middle" fill="#9cadc5" font-size="20" id="placeholder">Selecciona una sesión para cargar el circuito</text><path id="outline" fill="none" stroke="#394859" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path id="track" fill="none" stroke="#e84359" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><g id="marks2D" aria-label="Meta, sentido de marcha y norte"></g></svg><div id="weatherStrip" class="circuit-weather" aria-live="polite" hidden></div></div><p id="mapStatus" class="info">Mapa pendiente de cargar. Los coches solo se situarán cuando haya coordenadas GPS verificables.</p><div class="legend"><span class="key">🔴 Trazado · 🏁 Meta · ▸ Sentido de marcha</span></div></div></section>
+<section class="panel fiaCol"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia" aria-label="Avisos FIA con desplazamiento independiente" tabindex="0"> <div class="info">Selecciona una sesión para consultar los avisos de la FIA.</div></div></section>
 <section class="panel limits-compact"><h2>🚧 LÍMITES DE PISTA</h2><p class="info" id="limitsInfo">Recuento de avisos explícitos por piloto. No equivale necesariamente al contador oficial de advertencias.</p><div class="scroll" style="max-height:260px"><table><thead><tr><th>PILOTO</th><th>DETECTADAS</th><th>V. ANULADAS</th><th>RIESGO ESTIMADO</th></tr></thead><tbody id="limits"><tr><td colspan="4">Sin avisos de límites de pista.</td></tr></tbody></table></div></section>
 <section class="panel sectors-compact"><h2>⏱️ SECTORES · S1 / S2 / S3</h2><p class="info">Tiempos S1, S2 y S3. La diferencia con el líder y el GAP entre pilotos aparecen juntos en el cronometraje principal.</p><div class="scroll" style="max-height:270px"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody id="sectors"><tr><td colspan="5">Sin datos de sectores.</td></tr></tbody></table></div></section>
 </div>
@@ -161,23 +178,43 @@ tbody tr:hover{background:#30445b70}
 </main><footer>RENEGADOS RACING LIVE · Datos históricos OpenF1 · Proyecto independiente · La disponibilidad del directo no está garantizada. · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=6"></script>
 <script src="./marcas-circuitos.js?v=1"></script>
+<script src="./panel-fia.js?v=1"></script>
 <script>
 "use strict";
 const BASE="https://renegados-f1-live.onrender.com", el=id=>document.getElementById(id);
 function esc(s){return String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 async function api(path){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000);try{let r=await fetch(BASE+path,{signal:controller.signal}),d=await r.json();if(!r.ok)throw Error(d.error||"Error "+r.status);return d}finally{clearTimeout(timeout)}}
 function t(n){return typeof n==="number"?Math.floor(n/60)+":"+String((n%60).toFixed(3)).padStart(6,"0"):"—"}
-function label(e){if(e.flag==="CLEAR")return "Estado de pista · Despejada";let c={Flag:"Bandera",SessionStatus:"Estado de la sesión",SafetyCar:"Coche de seguridad",Other:"Otros",Drs:"DRS"}[e.category]||e.category||"Aviso";let f={YELLOW:"Amarilla",GREEN:"Verde",RED:"Roja",DOUBLE_YELLOW:"Doble amarilla"}[e.flag]||e.flag||"";return c+(f?" · "+f:"")}
-function renderData(d){let drivers=d.drivers||[],laps=d.laps||[],stints=d.stints||[],results=d.session_result||[];let rows=drivers.map(driver=>{let l=laps.filter(x=>x.driver_number===driver.driver_number&&typeof x.lap_duration==="number"&&x.lap_duration>0&&!x.is_pit_out_lap).sort((a,b)=>a.lap_duration-b.lap_duration),r=results.find(x=>x.driver_number===driver.driver_number),tyre=stints.filter(x=>x.driver_number===driver.driver_number).sort((a,b)=>(b.stint_number||0)-(a.stint_number||0))[0];return{driver,best:l[0],r,tyre}}).sort((a,b)=>(a.r?.position??999)-(b.r?.position??999));let leader=rows[0]?.best?.lap_duration;let sessionType=el("session").selectedOptions[0]?.textContent||"";let isRace=/^(Carrera|Sprint) ·/.test(sessionType);
-el("timing").innerHTML=rows.map((x,i)=>'<tr><td>'+esc(x.r?.position??(i+1))+'</td><td><b>'+esc(x.driver.name_acronym)+'</b></td><td>'+esc(x.driver.team_name)+'</td><td>'+(isRace?(x.r?.gap_to_leader===0?"Líder":(x.r?.gap_to_leader??"—")):((typeof x.best?.lap_duration==="number"&&typeof leader==="number")?"+"+(x.best.lap_duration-leader).toFixed(3):"—"))+'</td><td>—</td><td>'+t(x.best?.lap_duration)+'</td><td>'+esc(x.best?.duration_sector_1)+'</td><td>'+esc(x.best?.duration_sector_2)+'</td><td>'+esc(x.best?.duration_sector_3)+'</td><td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia"})[x.tyre?.compound]||"—")+'</td></tr>').join("");
-el("sectors").innerHTML=rows.map((x,i)=>"<tr><td>"+esc(x.r?.position??i+1)+"</td><td>"+esc(x.driver.name_acronym)+"</td>"+[1,2,3].map(j=>"<td>"+esc(x.best?.["duration_sector_"+j]??"—")+"</td>").join("")+"</tr>").join("");
-let errors=d.errores_parciales||{},events=d.race_control||[];
-el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+mensajeFiaHtml(e.message,esc)+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
-el("state").textContent="Histórico recibido: "+rows.length+" pilotos · "+events.length+" avisos FIA. No es una carrera en directo.";
+function renderData(d) {
+ const drivers=d.drivers || [], laps=d.laps || [], stints=d.stints || [], results=d.session_result || [];
+ const rows=drivers.map(driver=>{
+  const id=driver.driver_number;
+  const rated=laps.filter(lap=>lap.driver_number===id && !lap.is_pit_out_lap && lap.lap_duration>0);
+  const best=[...rated].sort((a,b)=>a.lap_duration-b.lap_duration)[0];
+  const sectors=[1,2,3].map(n=>Math.min(...rated.map(lap=>validSector(lap["duration_sector_"+n]) ?? Infinity)));
+  const result=results.find(row=>row.driver_number===id);
+  const stint=stints.filter(row=>row.driver_number===id).sort((a,b)=>b.stint_number-a.stint_number)[0];
+  return {driver,best,sectors,result,stint};
+ }).sort((a,b)=>(a.result?.position ?? Infinity)-(b.result?.position ?? Infinity));
+ const leader=rows[0]?.best?.lap_duration;
+ const isRace=/^(Race|Sprint)$/i.test(d.sesion?.session_name ?? "");
+ el("timing").innerHTML=rows.map(({driver,best,result,stint},i)=>{
+  const gap=isRace ? (i===0 ? "Líder" : result?.gap_to_leader) :
+   best && Number.isFinite(leader) ? "+"+(best.lap_duration-leader).toFixed(3) : null;
+  const color=teamColor(driver.team_colour);
+  const stops=result?.number_of_pit_stops;
+  return '<tr data-team-color="1" style="--team-color:'+color+'"><td>'+esc(result?.position ?? i+1)+'</td><td><b>'+
+   esc(driver.name_acronym)+'</b></td><td>'+esc(driver.team_name)+'</td><td>'+esc(gap)+'</td><td>—</td><td>'+
+   esc(t(best?.lap_duration))+'</td><td>'+tyreHtml(stint?.compound,null)+'</td><td>'+esc(stops)+'</td><td>—</td></tr>';
+ }).join("");
+ renderSectorRows(rows.map(({driver,sectors,result},i)=>({name:driver.name_acronym,position:result?.position ?? i+1,sectors})));
+ const errors=d.errores_parciales || {}, events=fiaChronology(d.race_control);
+ paintFiaPanel(el("fia"),events,esc,errors.race_control ? "No se pudieron recuperar los avisos FIA." : undefined);
+ el("state").textContent="Histórico · "+rows.length+" pilotos · "+events.length+" avisos FIA";
 }
 function draw(points, circuitId) {
  const vals=points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
- if(vals.length<30)throw Error("No hay suficientes coordenadas GPS");
+ if(vals.length<(circuitId ? 3 : 30))throw Error("No hay suficientes coordenadas del circuito");
  const xs=vals.map(p=>p.x), ys=vals.map(p=>p.y);
  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
  const width=Math.max(1e-9,maxX-minX), height=Math.max(1e-9,maxY-minY);
@@ -193,73 +230,64 @@ function draw(points, circuitId) {
  dibujarMarcasCircuito(el("marks2D"),marks,project,1.85,circuitId?[910,69]:null);
  return marks;
 }
-// Mapa aproximado: movimiento ilustrativo, no coordenadas ni telemetría GPS.
-let simulatedPilots=[],simRequest=0,simStartedAt=0,simSessionUpdatedAt=0,simLastFrame=0;
-function stopSimulatedPilots(){
- simulatedPilots=[];
- if(simRequest){cancelAnimationFrame(simRequest);simRequest=0}
- el("simDrivers").replaceChildren();
- el("simLabel").setAttribute("visibility","hidden");
-}
-function simulatedLapSeconds(d){
- const raw=String(d.BestLapTime?.Value||d.BestLapTime||"").trim();
- const match=raw.match(/^(?:(\d+):)?(\d{1,2})\.(\d{1,3})$/);
- if(!match)return null;
- const seconds=(Number(match[1]||0)*60)+Number(match[2])+Number("0."+match[3].padEnd(3,"0"));
- return seconds>=55&&seconds<=220?seconds:null;
-}
-function updateSimulatedPilots(drivers){
- if(activeMode!=="live"||el("track").getAttribute("d")===""||!drivers.length){stopSimulatedPilots();return}
- const valid=drivers.filter(d=>d&&/^\d+$/.test(String(d.RacingNumber||""))).slice(0,22);
- if(!valid.length){stopSimulatedPilots();return}
- const changed=!simulatedPilots.length||simulatedPilots.some((p,i)=>String(valid[i]?.RacingNumber)!==p.id);
- if(changed){simStartedAt=performance.now();el("simDrivers").replaceChildren()}
- simulatedPilots=valid.map((d,i)=>{
-  const old=!changed?simulatedPilots[i]:null;
-  const id=String(d.RacingNumber);
-  const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||""))?"#"+d.TeamColour:"#dce8f7";
-  const lap=simulatedLapSeconds(d);
-  const node=old?.node||document.createElementNS("http://www.w3.org/2000/svg","g");
-  if(!old){
-   const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
-   dot.setAttribute("r","8");dot.setAttribute("stroke","#0a1020");dot.setAttribute("stroke-width","2");
-   const text=document.createElementNS("http://www.w3.org/2000/svg","text");
-   text.setAttribute("x","11");text.setAttribute("y","4");text.setAttribute("font-size","16");
-   text.setAttribute("font-weight","bold");text.setAttribute("stroke","#07101d");text.setAttribute("stroke-width","3");
-   text.setAttribute("paint-order","stroke");text.setAttribute("fill","#fff");
-   node.append(dot,text);el("simDrivers").append(node);
-  }
-  node.firstChild.setAttribute("fill",color);
-  node.lastChild.textContent=d.Tla||d.RacingNumber;
-  return {id,node,lap,order:i};
- });
- simSessionUpdatedAt=Date.now();
- el("simLabel").setAttribute("visibility","visible");
- if(!simRequest)simRequest=requestAnimationFrame(animateSimulatedPilots);
-}
-function animateSimulatedPilots(now){
- simRequest=0;
- if(activeMode!=="live"||!simulatedPilots.length||Date.now()-simSessionUpdatedAt>90000||el("track").getAttribute("d")===""){stopSimulatedPilots();return}
- if(now-simLastFrame>75){
-  simLastFrame=now;
-  const path=el("track"),total=path.getTotalLength();
-  if(total>0)for(const pilot of simulatedPilots){
-   // Sin GPS, fases y separaciones simuladas. El ritmo solo ajusta la duración de la vuelta cuando existe.
-   const seconds=pilot.lap||95;
-   const phase=(((now-simStartedAt)/1000)/seconds+0.72-pilot.order*0.011)%1;
-   const pt=path.getPointAtLength((phase+1)%1*total);
-   pilot.node.setAttribute("transform","translate("+pt.x.toFixed(1)+","+pt.y.toFixed(1)+")");
-  }
- }
- simRequest=requestAnimationFrame(animateSimulatedPilots);
-}
 let availableSessions=[];
-let liveCircuitSessions=[], liveMapLoad=0;
-let circuitFeatures=[];
+let circuitFeatures=[], circuitDownload;
+let raceCourse, raceMap, raceMapLoad, raceFlags={};
 let lastMeetingInfo=null, userSelectedCircuit=false, currentMeetingKey="";
 function liveCircuitText(value){return String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function setRaceFlags(flags) {
+ raceFlags=flags;
+ raceMap?.setRaceFlags(flags);
+}
+
+function selectRaceCourse(feature) {
+ const next=feature && {name:feature.properties.location || feature.properties.name,id:feature.properties.id,points:feature.geometry.coordinates};
+ if (raceCourse?.id===next?.id) return;
+ raceCourse=next;
+ if (!el("map3DPanel").hidden) void renderRaceMap();
+}
+
+async function renderRaceMap() {
+ const course=raceCourse;
+ const status=el("map3DStatus");
+ const viewport=el("map3DViewport");
+ viewport.hidden=!course;
+ if (!course) {
+  raceMap?.hide();
+  status.textContent="Esperando identificar el circuito.";
+  return;
+ }
+ if (!raceMap) status.textContent="Preparando el circuito…";
+ try {
+  raceMapLoad ??= import("./mapa-entrenamientos-3d.js?v=6").then(module=>module.createMap3D(el)).catch(error=>{
+   raceMapLoad=undefined;
+   throw error;
+  });
+  raceMap=await raceMapLoad;
+  if (raceCourse!==course || el("map3DPanel").hidden) return;
+  raceMap.setContext(course);
+  raceMap.setRaceFlags(raceFlags);
+  raceMap.show();
+ } catch {
+  status.textContent="No se pudo abrir el mapa 3D.";
+ }
+}
+
+el("map3DButton").onclick=()=>{
+ el("map3DPanel").hidden=false;
+ el("map3DButton").setAttribute("aria-expanded","true");
+ void renderRaceMap();
+};
+el("map3DClose").onclick=()=>{
+ el("map3DPanel").hidden=true;
+ el("map3DButton").setAttribute("aria-expanded","false");
+ raceMap?.hide();
+ el("map3DButton").focus();
+};
+
 function unsetLiveCircuit(message){
- stopSimulatedPilots();
+ selectRaceCourse(null);
+
  el("liveCircuit").value="";
  el("outline").setAttribute("d","");
  el("track").setAttribute("d","");
@@ -305,13 +333,19 @@ function syncLiveCircuit(timing,status){
   userSelectedCircuit=false;loadLiveCircuit();
  }
 }
+async function loadCircuitFeatures() {
+ circuitDownload ??= fetch("./circuits.geojson?v=1",{cache:"force-cache",signal:AbortSignal.timeout(12000)}).then(async response=>{
+  if (!response.ok) throw Error("Circuitos no disponibles");
+  const geo=await response.json();
+  circuitFeatures=(geo.features || []).filter(f=>f.geometry?.type==="LineString"&&f.geometry.coordinates?.length>2);
+  return circuitFeatures;
+ }).catch(error=>{circuitDownload=undefined;throw error;});
+ return circuitDownload;
+}
 async function initLiveCircuit(){
  try{
-  const response=await fetch("./circuits.geojson?v=1",{cache:"force-cache"});
-  if(!response.ok)throw Error("HTTP "+response.status);
-  const geo=await response.json();
-  circuitFeatures=(geo.features||[]).filter(f=>f.geometry?.type==="LineString"&&Array.isArray(f.geometry.coordinates));
-  if(!circuitFeatures.length)throw Error("No hay trazados válidos");
+  await loadCircuitFeatures();
+  if (activeMode!=="live") return;
   el("liveCircuit").innerHTML='<option value="">Selecciona circuito</option>'+circuitFeatures.map((f,i)=>'<option value="'+i+'">'+esc(f.properties.name)+" · "+esc(f.properties.location)+'</option>').join("");
   unsetLiveCircuit("Trazados cargados. Esperando identificar el Gran Premio desde el receptor.");
   if(lastMeetingInfo)syncLiveCircuit(lastMeetingInfo.timing,lastMeetingInfo.status);
@@ -329,6 +363,7 @@ async function loadLiveCircuit(){
  const points=coords.map(p=>({x:p[0]*factor,y:p[1]}));
  try{
   const marks=draw(points,f.properties.id);
+  selectRaceCourse(f);
   el("mapStatus").textContent=f.properties.name+" · "+
    (marks.finish?"Meta aproximada y sentido de marcha. ":"Sentido de marcha. Meta sin referencia disponible. ")+
    "Sin posiciones en directo verificadas.";
@@ -340,31 +375,122 @@ function sessionLabel(name){return ({Race:"Carrera",Sprint:"Sprint",Qualifying:"
 function updateSessions(){const key=el("circuit").value;let matches=availableSessions.filter(s=>circuitKey(s)===key);el("session").innerHTML='<option value="">Selecciona una sesión</option>'+matches.map(s=>'<option value="'+esc(s.session_key)+'">'+esc(sessionLabel(s.session_name))+" · "+esc(s.date_start)+'</option>').join("");el("state").textContent=matches.length?matches.length+" sesión(es) disponibles en "+key:"No hay clasificaciones para este circuito"}
 el("circuit").onchange=updateSessions;
 el("find").onclick=async()=>{el("state").textContent="Buscando Grandes Premios de la temporada…";try{availableSessions=await api("/api/historico/sesiones?year="+encodeURIComponent(el("year").value));const circuits=[...new Set(availableSessions.map(circuitKey))].sort((a,b)=>a.localeCompare(b,"es"));el("circuit").innerHTML='<option value="">Selecciona circuito</option>'+circuits.map((name,i)=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join("");el("session").innerHTML='<option value="">Selecciona una sesión</option>';el("state").textContent=circuits.length?circuits.length+" circuitos y "+availableSessions.length+" sesiones. Elige circuito y sesión.":"No hay carreras o clasificaciones históricas disponibles."}catch(e){el("state").textContent="No se pudieron buscar las sesiones: "+e.message}};
-el("load").onclick=async()=>{let key=el("session").value;if(!key){el("state").textContent="Selecciona una sesión primero.";return}el("state").textContent="Cargando clasificación…";try{let d=await api("/api/historico/sesion/"+encodeURIComponent(key));renderData(d)}catch(e){el("state").textContent="Error de datos: "+e.message;return}el("mapStatus").textContent="Consultando coordenadas GPS del circuito…";try{let m=await api("/api/historico/mapa/"+encodeURIComponent(key));draw(m.coordenadas||[]);el("mapStatus").textContent="Trazado GPS histórico: "+m.coordenadas.length+" puntos · coche "+m.driver_number+". Sin posiciones actuales verificadas."}catch(e){el("mapStatus").textContent="Mapa no disponible: "+e.message+". No se dibujan posiciones inventadas."}};
+el("load").onclick=async()=>{
+ const key=el("session").value;
+ if (!key) {el("state").textContent="Selecciona una sesión primero.";return;}
+ const revision=++viewRevision;
+ selectRaceCourse(null);
+ setRaceFlags({});
+ let data;
+ try {
+  data=await api("/api/historico/sesion/"+encodeURIComponent(key));
+  if (revision!==viewRevision) return;
+  renderData(data);
+ } catch (error) {
+  if (revision===viewRevision) el("state").textContent="Error de datos: "+error.message;
+  return;
+ }
+ try {
+  await loadCircuitFeatures();
+  if (revision!==viewRevision) return;
+  const historical=data.sesion || {};
+  const match=findLiveCircuit({Session:{Location:historical.location,CircuitName:historical.circuit_short_name}},{});
+  const feature=circuitFeatures[match.index];
+  if (feature) selectRaceCourse(feature);
+ } catch {}
+ el("mapStatus").textContent="Consultando el trazado histórico…";
+ try {
+  const map=await api("/api/historico/mapa/"+encodeURIComponent(key));
+  if (revision!==viewRevision) return;
+  draw(map.coordenadas || []);
+  el("mapStatus").textContent="Trazado GPS histórico · coche "+map.driver_number;
+ } catch (error) {
+  if (revision===viewRevision) el("mapStatus").textContent="Trazado histórico no disponible: "+error.message;
+ }
+};
 
-/* Integración del panel en directo: solo datos confirmados y sin tiempos simulados. */
-let activeMode="history",liveBusy=false,liveTimer=null,lastLiveSuccessful=0;let previousPositions=new Map(),positionHighlights=new Map(),positionChanges=[];
-const liveBase=BASE+"/api/f1";
-async function liveApi(route){const c=new AbortController(),timer=setTimeout(()=>c.abort(),9000);try{const response=await fetch(liveBase+route,{signal:c.signal,cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);return response.json()}finally{clearTimeout(timer)}}
-function objects(payload,key){if(Array.isArray(payload))return payload;if(Array.isArray(payload?.[key]))return payload[key];if(payload?.[key]&&typeof payload[key]==="object")return Object.values(payload[key]);return []}
-function liveDate(value){const ms=Date.parse(value||"");return Number.isFinite(ms)?ms:null}
+let activeMode="history",liveBusy=false,liveTimer=null,viewRevision=0,sectorBests={},sectorSession;
+let previousPositions=new Map(),positionHighlights=new Map(),positionChanges=[];
+const directReceiver="https://renegados-f1-receptor.onrender.com/api/";
+const receiverRoutes={status:"status",timing:"leaderboard","race-control":"race-control","team-radio":"radio",weather:"weather"};
+
+async function readRaceChannel(channel,direct) {
+ if (!direct) {
+  const result=await api("/api/alternativa/"+channel);
+  if (!result.vigente) throw Error("Datos del receptor sin verificar");
+  return result;
+ }
+ const response=await fetch(directReceiver+receiverRoutes[channel],{signal:AbortSignal.timeout(12000),cache:"no-store"});
+ if (!response.ok) throw Error("HTTP "+response.status);
+ return {vigente:true,datos:await response.json()};
+}
+async function raceFeed() {
+ for (const direct of [true,false]) {
+  try {
+   const [s,t]=await Promise.all(["status","timing"].map(channel=>readRaceChannel(channel,direct)));
+   const status=s.datos,timing=t.datos;
+   const when=fiaTimestamp(status.lastMessageAt);
+   const age=(Date.now()-when)/1000;
+   if (status.isConnected===true && status.status==="CONNECTED" && age>=-20 && age<90) {
+    return {direct,status,timing,when,age};
+   }
+  } catch {}
+ }
+ throw Error("El receptor no ha confirmado datos recientes.");
+}
 function changeMode(mode){
+ if (activeMode===mode) return;
+ ++viewRevision;
+ selectRaceCourse(null);
+ setRaceFlags({});
  activeMode=mode;const live=mode==="live";
  el("modeLive").classList.toggle("primary",live);el("modeHistory").classList.toggle("primary",!live);
  for(const id of ["historyYearLabel","find","historyCircuitLabel","circuit","session","load"])el(id).hidden=live;
  el("liveSummary").hidden=!live;
- if(live){stopSimulatedPilots();clearCircuitWeather("Consultando meteorología…");el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
- else {stopSimulatedPilots();el("marks2D").replaceChildren();el("weatherStrip").hidden=true;el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';++liveMapLoad;el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
+ if(live){clearCircuitWeather("Consultando meteorología…");el("sectors").innerHTML='<tr><td colspan="4">Consultando sectores…</td></tr>';previousPositions.clear();positionHighlights.clear();positionChanges=[];initLiveCircuit();el("timing").innerHTML='<tr><td colspan="9">Comprobando datos en directo…</td></tr>';el("fia").innerHTML='<div class="info">Comprobando avisos FIA…</div>';el("mapStatus").textContent="Las posiciones de los coches solo aparecen con coordenadas verificadas. La fuente gratuita actual no garantiza GPS en directo.";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("placeholder").textContent="GPS en directo no disponible";refreshLive();if(!liveTimer)liveTimer=setInterval(()=>{if(activeMode==="live")refreshLive()},5000)}
+ else {el("marks2D").replaceChildren();el("weatherStrip").hidden=true;el("sectors").innerHTML='<tr><td colspan="4">Selecciona una sesión histórica.</td></tr>';el("state").textContent="Modo histórico. Elige temporada, circuito y sesión.";el("liveMeta").textContent="Monitor histórico seleccionado.";el("radios").innerHTML='<div class="info">Las radios se consultan en modo directo.</div>';el("limitsInfo").textContent="Control disponible en el modo directo.";el("limits").innerHTML='<tr><td colspan="4">Selecciona En directo para consultar los límites de pista.</td></tr>';el("timing").innerHTML='<tr><td colspan="9">Selecciona una sesión histórica.</td></tr>';el("fia").innerHTML='<div class="info">Selecciona una sesión para consultar los mensajes FIA.</div>';el("placeholder").textContent="Selecciona una sesión para cargar el circuito";el("outline").setAttribute("d","");el("track").setAttribute("d","");el("mapStatus").textContent="Mapa histórico pendiente de cargar."}
 }
 function pitStops(d){const value=d.NumberOfPitStops??d.PitStopCount??d.PitStopsCount??null;const n=Number(value);return value!==null&&value!==""&&Number.isInteger(n)&&n>=0&&n<30?String(n):"—"}
-function pitStatus(d){return d.InPit?"EN BOXES":d.PitOut?"SALIENDO":d.Retired?"RETIRADO":d.Stopped?"DETENIDO":"—"}
-function translateTyre(d){
- const s=d.Stints;
- const entries=Array.isArray(s)?s.map((v,i)=>({v,n:Number(v?.StintNumber??i)})):s&&typeof s==="object"?Object.entries(s).map(([k,v])=>({v,n:Number(v?.StintNumber??k)})):[];
- const st=entries.filter(x=>x.v&&typeof x.v==="object").sort((a,b)=>(Number.isFinite(b.n)?b.n:-1)-(Number.isFinite(a.n)?a.n:-1))[0]?.v;
- let raw=String(st?.Compound??d.Compound??d.TyreCompound??d.Tyre?.Compound??"").trim().toUpperCase();
- const tyre={SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema",S:"Blando",M:"Medio",H:"Duro",I:"Intermedio",W:"Lluvia extrema"};
- return tyre[raw]||raw||"—";
+function pitStatus(d){
+ return d.PitOut===true?"Saliendo de boxes":d.InPit===true?"En boxes":d.Retired?"Retirado":d.Stopped?"Detenido":"—";
+}
+const raceTyres={SOFT:["Blando","soft"],MEDIUM:["Medio","medium"],HARD:["Duro","hard"],INTERMEDIATE:["Intermedio","inter"],WET:["Lluvia extrema","wet"]};
+function lastStint(driver) {
+ return Object.values(driver.Stints ?? {}).filter(stint=>stint && typeof stint==="object").at(-1);
+}
+function tyreHtml(compound,newValue) {
+ const [label,color]=raceTyres[String(compound ?? "").toUpperCase()] ?? ["—","unknown"];
+ const state=String(newValue ?? "").trim().toLowerCase();
+ const badge=state==="true" ? "Nuevo" : state==="false" ? "Usado" : "";
+ return '<span class="tyre-pill tyre-'+color+'">'+label+'</span>'+
+  (badge ? '<span class="tyre-state" title="Estado del juego al montarlo">'+badge+'</span>' : "");
+}
+function teamColor(value) {
+ return /^[a-f\d]{6}$/i.test(value ?? "") ? "#"+value : "#8294b1";
+}
+function validSector(value) {
+ const seconds=Number(value);
+ return Number.isFinite(seconds) && seconds>0 ? seconds : null;
+}
+function liveSectorRows(drivers,session) {
+ const id=session.Key ?? session.Path;
+ if (id!==sectorSession) {sectorSession=id;sectorBests={};}
+ renderSectorRows(drivers.map(driver=>{
+  const id=driver.RacingNumber;
+  const sectors=[0,1,2].map(i=>{
+   const sample=driver.Sectors?.[i];
+   return Math.min(sectorBests[id]?.[i] ?? Infinity,validSector(sample?.Value) ?? Infinity,validSector(sample?.PreviousValue) ?? Infinity);
+  });
+  sectorBests[id]=sectors;
+  return {position:driver.Position,name:driver.Tla ?? driver.BroadcastName ?? id,sectors};
+ }));
+}
+function renderSectorRows(rows) {
+ const best=[0,1,2].map(i=>Math.min(...rows.map(row=>row.sectors[i])));
+ el("sectors").innerHTML=rows.map(({position,name,sectors})=>'<tr><td>'+esc(position)+'</td><td>'+esc(name)+'</td>'+
+  sectors.map((time,i)=>'<td'+(Number.isFinite(time)&&time===best[i]?' class="best-sector" title="Mejor tiempo del sector"':'')+'>'+
+   (Number.isFinite(time)?time.toFixed(3):"—")+'</td>').join("")+'</tr>').join("") ||
+  '<tr><td colspan="5">Sin tiempos de sectores.</td></tr>';
 }
 function renderTrackLimits(messages,available,drivers=[]){
  const info=el("limitsInfo"),target=el("limits");
@@ -405,9 +531,10 @@ function renderTrackLimits(messages,available,drivers=[]){
   return '<tr><td>'+esc(driverNames.get(r.id)||"Coche "+r.id)+'</td><td>'+(identified?minimum+' detectadas':'—')+'</td><td>'+(identified?r.deleted:'—')+'</td><td>'+esc(risk)+'</td></tr>';
  }).join(""):'<tr><td colspan="4">Sin incidencias individualizadas identificables. El riesgo real es desconocido.</td></tr>';
 }
-function radioUrl(r){
- const raw=String(r.Path||r.Url||r.URL||r.AudioUrl||r.audio_url||r.recording_url||"").trim();
+function radioUrl(r,sessionPath){
+ let raw=String(r.Path||r.Url||r.URL||r.AudioUrl||r.audio_url||r.recording_url||"").trim();
  if(!raw)return "";
+ if (raw.startsWith("TeamRadio/") && sessionPath) raw=sessionPath+raw;
  try{
   let url;
   if(/^https:\/\//i.test(raw))url=new URL(raw);
@@ -457,13 +584,13 @@ function renderCircuitWeather(result){
  el("weatherStrip").hidden=false;
  el("weatherStrip").innerHTML=entries.length?entries.join(""):'<span class="wx">Meteorología sin valores disponibles</span>';
 }
-function renderRadios(result){
+function renderRadios(result,sessionPath){
  const box=el("radios");
  if(result.status!=="fulfilled"){box.innerHTML='<div class="info">No se han podido recuperar las radios del receptor.</div>';return}
  const data=result.value.datos||{},caps=Array.isArray(data.Captures)?data.Captures:[];
  if(!caps.length){box.innerHTML='<div class="info">Todavía no hay grabaciones de radio disponibles.</div>';return}
  const items=caps.slice(-20).reverse().map(r=>{
- const url=radioUrl(r);
+ const url=radioUrl(r,sessionPath);
  const playable=!!url;
  const name=esc(r.Tla||r.BroadcastName||r.RacingNumber||"Piloto");
  const when=esc(r.Utc||r.Timestamp||r.Date||"");
@@ -475,26 +602,22 @@ function renderRadios(result){
 }
 async function refreshLive(){
  if(activeMode!=="live"||liveBusy)return;liveBusy=true;
+ const revision=viewRevision;
  try{
- const [sr,tr,fr,rr,wr]=await Promise.allSettled([api("/api/alternativa/status"),api("/api/alternativa/timing"),api("/api/alternativa/race-control"),api("/api/alternativa/team-radio"),api("/api/alternativa/weather")]);
- if(sr.status!=="fulfilled"||tr.status!=="fulfilled")throw Error("El receptor no ha confirmado estado y clasificación recientes.");
- const status=sr.value.datos||{},timing=tr.value.datos||{};
- const stamp=status.lastMessageAt;
- const when=liveDate(stamp),age=when===null?null:Math.round((Date.now()-when)/1000);
- const fresh=sr.value.vigente===true&&tr.value.vigente===true&&status.isConnected===true&&status.status==="CONNECTED"&&age!==null&&age>=0&&age<90;
- el("liveMeta").textContent="Receptor: "+(status.status==="CONNECTED"?"Conectado":"Sin estado confirmado")+" · Último mensaje: "+(when?new Date(when).toLocaleString("es-ES"):"sin fecha")+" · Antigüedad: "+(age===null?"—":age+" s")+" · Fuente comunitaria experimental";
- el("state").textContent=fresh?"● RECEPTOR CONECTADO · DATOS RECIENTES":"● DIRECTO NO VERIFICADO";
- el("state").style.borderColor=fresh?"#35875f":"#80652e";
- if(!fresh){stopSimulatedPilots();clearCircuitWeather("Sin sesión en directo verificada");if(!userSelectedCircuit)unsetLiveCircuit("Sin sesión verificada: no se puede identificar el circuito.");el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';el("fia").innerHTML='<div class="info">Avisos no verificados.</div>';return;}
- renderCircuitWeather(wr);
+ const {direct,status,timing,when,age}=await raceFeed();
+ if (revision!==viewRevision) return;
+ const session=timing.Session ?? timing.SessionInfo ?? {};
+ el("liveMeta").textContent=[nombreSesion(session.Name ?? session.Type),nombreGranPremio(session.Meeting?.Name),
+  "Último mensaje a las "+fiaTimeFormat.format(when),"Hace "+Math.max(0,Math.round(age))+" s"].filter(Boolean).join(" · ");
+ el("state").textContent="● RECEPTOR CONECTADO · DATOS RECIENTES";
+ el("state").style.borderColor="#35875f";
  syncLiveCircuit(timing,status);
- const lines=timing.Lines||{},order=Array.isArray(timing.Leaderboard)?timing.Leaderboard:[];
- const ds=order.map(id=>lines[id]).filter(d=>d&&d.RacingNumber&&/^\d+$/.test(String(d.RacingNumber)));
- updateSimulatedPilots(ds);
- el("sectors").innerHTML=ds.map(d=>"<tr><td>"+esc(d.Position||"—")+"</td><td>"+esc(d.Tla||d.BroadcastName||d.RacingNumber)+"</td>"+[0,1,2].map(i=>"<td>"+esc(d.Sectors?.[i]?.Value||"—")+"</td>").join("")+"</tr>").join("");
+ const lines=timing.Lines ?? {};
+ const order=Array.isArray(timing.Leaderboard) ? timing.Leaderboard : Object.keys(lines);
+ const ds=order.map(id=>lines[id]).filter(driver=>/^\d+$/.test(driver?.RacingNumber ?? ""));
+ liveSectorRows(ds,session);
  const now=Date.now(),nextPositions=new Map();
  const validPositions=ds.filter(d=>Number.isInteger(Number(d.Position))&&Number(d.Position)>0);
- const ids=new Set(validPositions.map(d=>String(d.RacingNumber)));
  // Comparar solo clasificaciones completas para no tratar pilotos ausentes como adelantamientos.
  if(validPositions.length>=18){
   for(const d of validPositions){
@@ -510,32 +633,56 @@ async function refreshLive(){
  }
  positionChanges=positionChanges.filter(x=>now-x.when<20000).slice(0,10);
  el("timing").innerHTML=ds.length?ds.map(d=>{
- const sectors=Array.isArray(d.Sectors)?d.Sectors:[];
  const lap=d.BestLapTime?.Value||"";
- const gap=typeof d.GapToLeader==="string"?d.GapToLeader:"";
+ const gap=d.GapToLeader?.Value ?? d.GapToLeader ?? d.TimeDiffToFastest;
+ const interval=d.IntervalToPositionAhead?.Value ?? d.IntervalToPositionAhead ?? d.TimeDiffToPositionAhead;
  const change=positionHighlights.get(String(d.RacingNumber));
  const active=change&&change.until>now?change:null;
  const indicator=active?'<span class="pos-delta '+(active.change>0?'pos-up':'pos-down')+'">'+(active.change>0?'▲ +':'▼ ')+active.change+'</span>':'';
- const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||""))?"#"+d.TeamColour:"#8093ac";
- const tyre=translateTyre(d),tyreClass=({Blando:"tyre-soft",Medio:"tyre-medium",Duro:"tyre-hard",Intermedio:"tyre-inter","Lluvia extrema":"tyre-wet"})[tyre]||"tyre-unknown";
- const pit=pitStatus(d),pitClass=pit==="EN BOXES"?"pit-active":pit==="SALIENDO"?"pit-out":"";
- return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(active?(active.change>0?'changed-up':'changed-down'):'')+'"><td>'+esc(d.Position||"—")+indicator+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(Number(d.Position)===1?"Líder":d.IntervalToPositionAhead?.Value||"—")+'</td><td>'+esc(lap||"—")+'</td><td><span class="tyre-pill '+tyreClass+'">'+esc(tyre)+'</span></td><td>'+esc(pitStops(d))+'</td><td><span class="pit-pill '+pitClass+'">'+esc(pit)+'</span></td></tr>'
+ const color=teamColor(d.TeamColour), stint=lastStint(d);
+ const tyre=tyreHtml(stint?.Compound ?? d.Compound ?? d.TyreCompound,stint?.New);
+ const pit=pitStatus(d),pitClass=pit==="En boxes"?"pit-active":pit==="Saliendo de boxes"?"pit-out":"";
+ return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(active?(active.change>0?'changed-up':'changed-down'):'')+'"><td>'+esc(d.Position||"—")+indicator+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(gap||"—")+'</td><td>'+esc(Number(d.Position)===1?"Líder":interval||"—")+'</td><td>'+esc(lap||"—")+'</td><td>'+tyre+'</td><td>'+esc(pitStops(d))+'</td><td><span class="pit-pill '+pitClass+'">'+esc(pit)+'</span></td></tr>'
  }).join(""):'<tr><td colspan="9">Conexión reciente, pero el proveedor no ha entregado pilotos utilizables.</td></tr>';
- renderRadios(rr);
- const raw=fr.status==="fulfilled"?(fr.value.datos||{}):null;
- const payload=raw&&(raw.RaceControl??raw.Messages??raw.messages??raw);
- const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
- const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
- renderTrackLimits(valid,fr.status==="fulfilled",ds);
- el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article class="fia-'+fiaTone(m)+'"><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+mensajeFiaHtml(m.Message||m.message||m.text||m.Flag||"Aviso",esc)+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
- lastLiveSuccessful=Date.now();
- }catch(error){stopSimulatedPilots();clearCircuitWeather("Meteorología no verificada");el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
+ const extra=async (channel,render)=>{
+  const [result]=await Promise.allSettled([readRaceChannel(channel,direct)]);
+  if (revision===viewRevision) render(result);
+ };
+ await Promise.all([
+  extra("team-radio",result=>renderRadios(result,session.Path)),
+  extra("weather",renderCircuitWeather),
+  extra("race-control",result=>{
+   const raw=result.value?.datos ?? {};
+   const startValue=session.StartDate ?? "";
+   const offset=String(session.GmtOffset ?? "").match(/^[+-]\d\d:\d\d/)?.[0] ?? "Z";
+   const start=fiaTimestamp(startValue && !/(?:Z|[+-]\d\d:\d\d)$/i.test(startValue) ? startValue+offset : startValue);
+   const messages=fiaChronology(raw.RaceControl ?? raw.Messages ?? raw.messages ?? raw,Number.isFinite(start) ? start-900000 : -Infinity);
+   const flagSession=!/^(inactive|finished|finali[sz]ed|ended)$/i.test(session.SessionStatus ?? "");
+   const circuitMatches=!userSelectedCircuit || findLiveCircuit(timing,status).index===Number(el("liveCircuit").value);
+   setRaceFlags(flagSession && circuitMatches ? flagsBySector(messages) : {});
+   renderTrackLimits(messages,result.status==="fulfilled",ds);
+   paintFiaPanel(el("fia"),messages,esc,result.status==="fulfilled" ? undefined : "No se pudieron recuperar los avisos FIA.");
+  })
+ ]);
+ }catch(error){
+  if (revision!==viewRevision) return;
+  setRaceFlags({});
+  clearCircuitWeather("Meteorología no verificada");
+  el("timing").innerHTML='<tr><td colspan="9">No hay datos recientes verificados.</td></tr>';
+  renderSectorRows([]);
+  paintFiaPanel(el("fia"),[],esc,"Sin avisos FIA verificados.");
+  el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';
+  renderTrackLimits([],false);
+  el("state").textContent="● RECEPTOR NO VERIFICADO";
+  el("state").style.borderColor="#80652e";
+  el("liveMeta").textContent=error.message;
+ }
  finally{liveBusy=false}
 }
 function enablePanelLayout(){
  const grid=el("dashboardGrid");
  const panels=[...grid.children].filter(p=>p.classList.contains("panel"));
- 
+
  panels.forEach((p,i)=>{p.dataset.panelId="panel-"+i;p.draggable=false;const handle=p.querySelector("h2");if(handle){handle.draggable=true;handle.setAttribute("title","Arrastra desde aquí para mover este panel")}});
  let saved=[];try{saved=JSON.parse(localStorage.getItem("renegados-panel-order-v4")||"[]")}catch(e){}
  if(Array.isArray(saved))saved.forEach(id=>{const p=panels.find(x=>x.dataset.panelId===id);if(p)grid.appendChild(p)});
@@ -553,5 +700,5 @@ el("modeHistory").onclick=()=>changeMode("history");
 el("modeLive").onclick=()=>changeMode("live");
 el("liveRefresh").onclick=refreshLive;
 el("liveMap").onclick=loadLiveCircuit;
-el("liveCircuit").onchange=()=>{userSelectedCircuit=true;loadLiveCircuit()};
+el("liveCircuit").onchange=()=>{userSelectedCircuit=true;setRaceFlags({});loadLiveCircuit()};
 </script></body></html>

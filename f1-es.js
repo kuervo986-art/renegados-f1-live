@@ -18,8 +18,16 @@ function translate(s){
 s=String(s||"").trim();
 const blueFlag=s.match(/^(?:WAVED|SHOWN|DISPLAYED)\s+BLUE\s+FLAGS?\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s+TIMED\s+AT\s+(\d{1,2}:\d{2}(?::\d{2})?)\.?$/i);
 if(blueFlag)return "Bandera azul mostrada al coche "+blueFlag[1]+" ("+blueFlag[2]+") a las "+blueFlag[3]+".";
-let m=s.match(/^Car\s+(\d+)\s+\(([^)]+)\)\s+TIME\s+([\d:.]+)\s+DELETED\s*-\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(.*)$/i);
-if(m)return "Coche "+m[1]+" ("+m[2]+"): tiempo "+m[3]+" anulado por límites de pista en la curva "+m[4]+", vuelta "+m[5]+(m[6]||"");
+const deleted=s.match(/^CAR\s+(\d+)(?:\s+\(([^)]+)\))?\s+(?:TIME\s+([\d:.]+)|LAP)\s+DELETED\s*[-–—]\s*TRACK LIMITS AT TURN\s+(\d+)\s+LAP\s+(\d+)(?:\s+(?:AT\s+)?(\d{1,2}:\d{2}:\d{2}))?(?:\s+(\(PIT\)))?\.?$/i);
+if(deleted){
+ const [,number,driver,time,turn,lap,at,pit]=deleted;
+ const car="Coche "+number+(driver?" ("+driver+")":"");
+ const result=time?"tiempo "+time+" anulado":"vuelta anulada";
+ return car+": "+result+" por límites de pista en la curva "+turn+", vuelta "+lap+
+  (at?", a las "+at:"")+(pit?" (boxes)":"")+".";
+}
+const takeFlag=s.match(/^FIRST CAR TO TAKE THE FLAG\s*[-–—]\s*CAR\s+(\d+)(?:\s+\(([^)]+)\))?\.?$/i);
+if(takeFlag)return "Primer coche en recibir la bandera a cuadros: "+takeFlag[1]+(takeFlag[2]?" ("+takeFlag[2]+")":"")+".";
 const resumeTime=s.match(/^RACE WILL RESUME AT\s+(\d{1,2}:\d{2})\s*$/i);
 if(resumeTime)return "La carrera se reanudará a las "+resumeTime[1];
 const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
@@ -127,6 +135,7 @@ function translateReason(value){
  [/^UNSAFE RELEASE$/i,"incorporación insegura desde boxes"],
  [/^TRACK LIMITS$/i,"límites de pista"],
  [/^IGNORING YELLOW FLAGS$/i,"ignorar las banderas amarillas"],
+ [/^YELLOW FLAG INFRINGEMENT$/i,"infracción bajo bandera amarilla"],
  [/^FAILING TO FOLLOW RACE DIRECTORS?['’]? INSTRUCTIONS$/i,"incumplimiento de las instrucciones de Dirección de Carrera"],
  [/^PRACTICE START INFRINGEMENT$/i,"infracción en el procedimiento de salida de prácticas"],
  [/^FAILURE TO FOLLOW RACE DIRECTOR.?S INSTRUCTIONS$/i,"incumplir las instrucciones de Dirección de Carrera"],

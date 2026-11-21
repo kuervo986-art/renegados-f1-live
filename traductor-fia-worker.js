@@ -22,7 +22,10 @@ self.onmessage=async({data:{id,original}})=>{
    if (!output || comparable(input)===comparable(output)) throw Error("Aviso sin traducir");
    translations.push(output);
   }
-  self.postMessage({id,translation:translations.join(" ")});
+  const translation=translations.join(" ")
+   .replace(/\bpit lane\b/gi,"carril de boxes")
+   .replace(/\bliberaci[oó]n (?:insegura|no segura)\b/gi,"salida insegura de boxes");
+  self.postMessage({id,translation});
  } catch {
   self.postMessage({id,translation:""});
  }

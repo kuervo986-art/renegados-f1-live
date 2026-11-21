@@ -36,13 +36,13 @@ const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
 if(push)return "Colocar los coches al frente en este orden: "+push[1];
 const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);
 if(resume)return "Orden de reanudación: "+resume[1];
-const postSession=s.match(/^INCIDENT\s+INVOLVING\s+(CAR|CARS)\s+(.+?)\s+WILL\s+BE\s+INVESTIGATED\s+AFTER\s+THE\s+(RACE|SESSION|QUALIFYING)\s*[-–—]\s*(.+)$/i);
+const postSession=s.match(/^(PIT LANE\s+)?INCIDENT\s+INVOLVING\s+(CAR|CARS)\s+(.+?)\s+WILL\s+BE\s+INVESTIGATED\s+AFTER\s+THE\s+(RACE|SESSION|QUALIFYING)\s*[-–—]\s*(.+)$/i);
 if(postSession){
- const [,type,carList,session,reason]=postSession;
+ const [,pitLane,type,carList,session,reason]=postSession;
  const when={RACE:"la carrera",SESSION:"la sesión",QUALIFYING:"la clasificación"}[session.toUpperCase()];
  const cars=carList.replace(/\s+AND\s+/gi," y ");
  const translatedReason=translateReason(reason);
- return "Incidente "+(type.toUpperCase()==="CAR"?"del coche ":"entre los coches ")+cars+
+ return "Incidente "+(type.toUpperCase()==="CAR"?"del coche ":"entre los coches ")+cars+(pitLane?" en el carril de boxes":"")+
   ": se investigará después de "+when+". Motivo: "+translatedReason+".";
 }
 const reviewed=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+REVIEWED\s+NO FURTHER INVESTIGATION\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
@@ -73,11 +73,14 @@ const penalty=s.match(/^(\d+)\s+SECOND\s+TIME\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(
 if(penalty)return "Penalización de "+penalty[1]+" segundos para el coche "+penalty[2]+" ("+penalty[3]+"): "+translateReason(penalty[4]);
 const penalty2=s.match(/^(\d+)\s+SECOND\s+(STOP\s+AND\s+GO|DRIVE\s+THROUGH)\s+PENALTY\s+FOR\s+CAR\s+(\d+)\s+\(([^)]+)\)\s*-\s*(.+)$/i);
 if(penalty2)return "Penalización de "+(penalty2[2].toUpperCase().includes("STOP")?"parada y continuación":"paso por boxes")+" de "+penalty2[1]+" segundos para el coche "+penalty2[3]+" ("+penalty2[4]+"): "+translateReason(penalty2[5]);
-const generalIncident=s.match(/^INCIDENT\s+INVOLVING\s+CARS?\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|REVIEWED(?:\s+NO FURTHER INVESTIGATION)?|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*-\s*(.+)$/i);
+const generalIncident=s.match(/^(PIT LANE\s+)?INCIDENT\s+INVOLVING\s+(CAR|CARS)\s+(.+?)\s+(UNDER INVESTIGATION|NOTED|REVIEWED(?:\s+NO FURTHER INVESTIGATION)?|NO FURTHER INVESTIGATION|NO FURTHER ACTION)\s*[-–—]\s*(.+)$/i);
 if(generalIncident){
- const act=generalIncident[2].toUpperCase();
+ const [,pitLane,type,carList,action,reason]=generalIncident;
+ const act=action.toUpperCase();
+ const cars=carList.replace(/\s+AND\s+/gi," y ");
  const description={"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado","REVIEWED":"revisado","REVIEWED NO FURTHER INVESTIGATION":"revisado, sin más investigación","NO FURTHER INVESTIGATION":"sin más investigación","NO FURTHER ACTION":"sin medidas adicionales"}[act]||"";
- return "Incidente con el coche o coches "+generalIncident[1]+": "+description+". Motivo: "+translateReason(generalIncident[3]);
+ return "Incidente "+(type.toUpperCase()==="CAR"?"del coche ":"entre los coches ")+cars+(pitLane?" en el carril de boxes":"")+
+  ": "+description+". Motivo: "+translateReason(reason)+".";
 }
 const generalReason=s.match(/^(.+?)\s+(UNDER INVESTIGATION|NOTED|NO FURTHER INVESTIGATION)\s*-\s*(.+)$/i);
 if(generalReason)return translateReason(generalReason[1])+": "+({"UNDER INVESTIGATION":"bajo investigación","NOTED":"registrado","NO FURTHER INVESTIGATION":"sin más investigación"}[generalReason[2].toUpperCase()])+". "+translateReason(generalReason[3]);
@@ -140,7 +143,7 @@ function translateReason(value){
  [/^CAUSING A COLLISION$/i,"provocar una colisión"],
  [/^LEAVING THE TRACK AND GAINING AN ADVANTAGE$/i,"salirse de la pista y obtener ventaja"],
  [/^LEAVING PIT EXIT ON RED LIGHT$/i,"salir de boxes con el semáforo rojo"],
- [/^UNSAFE RELEASE$/i,"incorporación insegura desde boxes"],
+ [/^UNSAFE RELEASE$/i,"salida insegura de boxes"],
  [/^TRACK LIMITS$/i,"límites de pista"],
  [/^IGNORING YELLOW FLAGS$/i,"ignorar las banderas amarillas"],
  [/^YELLOW FLAG INFRINGEMENT$/i,"infracción bajo bandera amarilla"],
@@ -230,7 +233,7 @@ function sendNextFiaTranslation() {
   setTimeout(sendNextFiaTranslation,30000);
  };
  try {
-  fiaWorker ??= new Worker(new URL("./traductor-fia-worker.js?v=1",document.baseURI),{type:"module"});
+  fiaWorker ??= new Worker(new URL("./traductor-fia-worker.js?v=2",document.baseURI),{type:"module"});
   fiaWorker.onerror=unavailable;
   fiaWorker.onmessage=({data})=>{
    if (data.id!==entry.id) return;

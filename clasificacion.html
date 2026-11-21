@@ -24,76 +24,14 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 #fia article.fia-black .flag{color:#c0c7d3}
 #fia article.fia-checkered .flag{color:#e4e8f1}
 </style></head><body>
-<header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE CLASIFICACIÓN · Q1 / Q2 / Q3</small></div><nav><a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
+<header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE CLASIFICACIÓN · Q1 / Q2 / Q3</small></div><nav aria-label="Navegación"><a href="./">Inicio</a> · <a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
 <main>
-<div class="toolbar"><span class="tag">⏱️ Clasificación</span><button id="refresh">Actualizar ahora</button><span class="status" id="status">Esperando datos…</span></div>
+<div class="toolbar"><span class="tag">⏱️ Clasificación</span><button id="refresh">Actualizar ahora</button><span class="status" id="status" role="status">Esperando datos…</span></div>
 <div class="phases"><div class="phase" id="phase1"><strong>Q1</strong><p id="info1">Pendiente de confirmar</p></div><div class="phase" id="phase2"><strong>Q2</strong><p id="info2">Pendiente de confirmar</p></div><div class="phase" id="phase3"><strong>Q3</strong><p id="info3">Pendiente de confirmar</p></div></div>
 <p id="phaseStatus">La fase y las eliminaciones solo se indicarán cuando el proveedor permita identificarlas.</p>
 <div class="layout">
-<section class="panel"><h2>⏱️ CLASIFICACIÓN · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>MEJOR VUELTA</th><th>DIFERENCIA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>ESTADO</th></tr></thead><tbody id="timing"><tr><td colspan="10">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">Las posiciones de riesgo en Q1 y Q2 son provisionales hasta confirmarse las eliminaciones. Sin GPS ni tiempos inventados.</p></section>
+<section class="panel"><h2>⏱️ CLASIFICACIÓN · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>Q1</th><th>Q2</th><th>Q3</th><th>DIF. DE RONDA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>ESTADO</th></tr></thead><tbody id="timing"><tr><td colspan="12">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">La diferencia se calcula con la mejor vuelta de la ronda. S1–S3 muestran los últimos sectores recibidos.</p></section>
 <section class="panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de clasificación experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
-<script>
-"use strict";
-const BASE="https://renegados-f1-live.onrender.com",get=id=>document.getElementById(id);
-const esc=x=>String(x??"—").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-let busy=false;
-async function req(route){
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
- try{const r=await fetch(BASE+route,{signal:controller.signal,cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}
- finally{clearTimeout(timeout)}
-}
-function seconds(v){if(typeof v==="number")return Number.isFinite(v)&&v>0?v:null;const s=String(v||"").trim();if(!s||s==="—")return null;const p=s.split(":").map(Number);if(p.some(x=>!Number.isFinite(x)))return null;if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2];return null}
-function fmt(v){return typeof v==="number"&&Number.isFinite(v)?("+"+v.toFixed(3)):"—"}
-function phaseFrom(session){
- const name=String(session.Name||session.SessionName||session.Type||session.SessionType||"").toLowerCase();
- if(!/qualif|shootout/.test(name))return 0;
- const part=String(session.Part||session.QualifyingPart||session.QualifyingSession||session.Segment||"").toUpperCase();
- const match=part.match(/Q([123])/);return match?Number(match[1]):0
-}
-function extractBest(d,phase){
- const key=phase===1?"Q1":phase===2?"Q2":phase===3?"Q3":null;
- const q=d.QualifyingStats||d.QualifyingTimes||{};
- const candidate=key?(q[key]?.Value||q[key]||d[key]?.Value||d[key]):null;
- return candidate||d.BestLapTime?.Value||d.BestLapTime||"";
-}
-function tyre(d){
- const items=d.Stints?Object.values(d.Stints):[];
- const last=items[items.length-1]||{};
- const t=String(last.Compound||d.Compound||"").toUpperCase();
- return ({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"})[t]||"—"
-}
-async function refresh(){
- if(busy)return;busy=true;
- try{
- const [s,t,f]=await Promise.allSettled([req("/api/alternativa/status"),req("/api/alternativa/timing"),req("/api/alternativa/race-control")]);
- if(s.status!=="fulfilled"||t.status!=="fulfilled")throw Error("Sin conexión verificada con el cronometraje.");
- const status=s.value.datos||{},data=t.value.datos||{};
- const age=(Date.now()-Date.parse(status.lastMessageAt||""))/1000;
- const recent=s.value.vigente===true&&t.value.vigente===true&&status.isConnected===true&&Number.isFinite(age)&&age>=0&&age<90;
- if(!recent)throw Error("El receptor no tiene datos recientes verificados.");
- const session=data.Session||{},name=String(session.Name||session.SessionName||session.Type||session.SessionType||"");
- const isQual=/qualif|shootout/i.test(name),phase=phaseFrom(session);
- get("status").textContent="Receptor conectado · "+nombreSesion(name)+" · actualización hace "+Math.round(age)+" s";
- for(let i=1;i<=3;i++){get("phase"+i).classList.toggle("on",phase===i);get("info"+i).textContent=phase===i?"Fase confirmada":phase>i?"Fase anterior":"Sin confirmar"}
- get("phaseStatus").textContent=!isQual?"El receptor no identifica una clasificación activa. No se muestran eliminaciones.":phase===0?"Clasificación identificada; fase Q1/Q2/Q3 todavía no confirmada por el receptor.":"Q"+phase+" identificada. La zona de eliminación, si se marca, es provisional.";
- const lines=data.Lines||{},ids=Array.isArray(data.Leaderboard)?data.Leaderboard:Object.keys(lines);
- let drivers=ids.map(id=>lines[id]).filter(d=>d&&/^\d+$/.test(String(d.RacingNumber||"")));
- const rows=drivers.map((d,i)=>({...d,_pos:Number(d.Position)||i+1,_best:extractBest(d,phase),_seconds:seconds(extractBest(d,phase))})).sort((a,b)=>a._pos-b._pos);
- const valid=rows.map(r=>r._seconds).filter(v=>v!==null),leader=valid.length?Math.min(...valid):null;
- const maxAllowed=phase===1?16:phase===2?10:rows.length;
- get("timing").innerHTML=rows.length?rows.map((d,i)=>{
- const danger=isQual&&phase>0&&phase<3&&rows.length>=18&&i>=maxAllowed;
- const diff=d._seconds!==null&&leader!==null?fmt(d._seconds-leader):"—";
- const state=danger?"En zona de eliminación*":"—";
- const color=/^[0-9a-fA-F]{6}$/.test(String(d.TeamColour||''))?'#'+d.TeamColour:'#8294b1';
- return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger?'danger':'')+'"><td>'+esc(d._pos)+'</td><td><b>'+esc(d.Tla||d.BroadcastName||d.RacingNumber)+'</b></td><td>'+esc(d.TeamName||"—")+'</td><td>'+esc(d._best?.Value||d._best||"—")+'</td><td>'+esc(diff)+'</td><td>'+esc(tyre(d))+'</td>'+[0,1,2].map(j=>'<td>'+esc(d.Sectors?.[j]?.Value||"—")+'</td>').join("")+'<td>'+esc(state)+'</td></tr>';
- }).join(""):'<tr><td colspan="10">Todavía no se han recibido pilotos para esta sesión.</td></tr>';
- const raw=f.status==="fulfilled"?(f.value.datos||{}):{},events=raw.RaceControl||raw.Messages||[];
- get("fia").innerHTML=Array.isArray(events)&&events.length?events.slice(-60).reverse().map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.Utc||e.timestamp||"")+'</time><div class="flag">'+esc(({green:'Bandera verde',yellow:'Bandera amarilla',red:'Bandera roja',blue:'Bandera azul',white:'Bandera blanca',black:'Bandera negra / advertencia',checkered:'Bandera a cuadros'})[fiaTone(e)]||'Dirección de carrera')+'</div>'+esc(translate(e.Message||e.message||"Aviso"))+'</article>').join(""):'<p class="note">No hay avisos FIA disponibles.</p>';
- }catch(e){get("status").textContent="Sin datos actuales confirmados: "+e.message;get("timing").innerHTML='<tr><td colspan="10">Esperando una sesión de clasificación con datos reales.</td></tr>';get("fia").innerHTML='<p class="note">Avisos no verificados.</p>'}
- finally{busy=false}
-}
-get("refresh").onclick=refresh;refresh();setInterval(refresh,5000);
-</script></body></html>
+<script src="./clasificacion.js?v=1"></script></body></html>

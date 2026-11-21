@@ -233,7 +233,7 @@ function sendNextFiaTranslation() {
   setTimeout(sendNextFiaTranslation,30000);
  };
  try {
-  fiaWorker ??= new Worker(new URL("./traductor-fia-worker.js?v=2",document.baseURI),{type:"module"});
+  fiaWorker ??= new Worker(new URL("./traductor-fia-worker.js?v=3",document.baseURI),{type:"module"});
   fiaWorker.onerror=unavailable;
   fiaWorker.onmessage=({data})=>{
    if (data.id!==entry.id) return;

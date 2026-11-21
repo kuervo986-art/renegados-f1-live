@@ -16,9 +16,11 @@ const seconds = value => {
  return minutes*60+secs;
 };
 const tyreNames = {SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia extrema"};
+const tyreColors = {SOFT:"#ff7e88",MEDIUM:"#ffd275",HARD:"#f5f5f5",INTERMEDIATE:"#70e6aa",WET:"#83bfff"};
 const flagNames = {green:"Bandera verde",yellow:"Bandera amarilla",red:"Bandera roja",blue:"Bandera azul",white:"Bandera blanca",black:"Bandera negra / advertencia",checkered:"Bandera a cuadros"};
 let busy = false;
 let lastSnapshot;
+let meeting, displayedMeeting, circuits, map3DLoad, map3D;
 const snapshotKey = "renegados-clasificacion-ultima-v1";
 try {
  const saved = JSON.parse(sessionStorage.getItem(snapshotKey) ?? "null");
@@ -67,6 +69,10 @@ function renderFia(events,session) {
 
 function render({data,events,receivedAt},online) {
  const session = data.Session;
+ if (session.Meeting && (!meeting || meeting.Key!==session.Meeting.Key || meeting.Location!==session.Meeting.Location)) {
+  meeting = session.Meeting;
+  if (!get("map3DPanel").hidden) void showCircuit();
+ }
  const status = String(session.SessionStatus ?? "").toLowerCase();
  const pending = !status || status==="inactive";
  const lines = Object.values(data.Lines ?? {}).filter(driver=>/^\d+$/.test(driver?.RacingNumber ?? ""));
@@ -110,13 +116,61 @@ function render({data,events,receivedAt},online) {
   const compound = (stints.at(-1)?.Compound ?? driver.Compound ?? "").toUpperCase();
   const state = confirmed ? "Eliminado en Q"+eliminated : danger ? "En zona de eliminación" : "—";
   const color = /^[a-f\d]{6}$/i.test(driver.TeamColour ?? "") ? "#"+driver.TeamColour : "#8294b1";
+  const tyreColor = !pending ? tyreColors[compound] : null;
   const cells = [position,driver.Tla ?? driver.BroadcastName ?? driver.RacingNumber,driver.TeamName,
    ...times,gap===null ? null : gap===0 ? "Líder" : "+"+gap.toFixed(3),!pending ? tyreNames[compound] : null,
    ...[0,1,2].map(index=>!pending ? driver.Sectors?.[index]?.Value || null : null),state];
   return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
-   cells.map(value=>'<td>'+esc(value)+'</td>').join("")+'</tr>';
+   cells.map((value,index)=>index===7 && tyreColor
+    ? '<td style="color:'+tyreColor+'">'+esc(value)+'</td>'
+    : '<td>'+esc(value)+'</td>').join("")+'</tr>';
  }).join("") || '<tr><td colspan="12">Esperando la lista de pilotos.</td></tr>';
  renderFia(events,session);
+}
+
+async function showCircuit() {
+ const current = meeting;
+ const status = get("map3DStatus");
+ if (!current) {
+  status.textContent = "Esperando que el receptor identifique el circuito.";
+  return;
+ }
+ if (displayedMeeting===current) {
+  map3D.show();
+  return;
+ }
+ status.textContent = "Preparando el circuito…";
+ try {
+  circuits ??= fetch("./circuits.geojson",{signal:AbortSignal.timeout(12000)}).then(response=>{
+   if (!response.ok) throw Error("Circuitos no disponibles");
+   return response.json();
+  }).catch(error=>{circuits=undefined;throw error;});
+  const normalize = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+  const aliases = {interlagos:"sao paulo",lusail:"losail",sakhir:"bahrain",mexico:"mexico city",spa:"spa francorchamps",montmelo:"barcelona"};
+  const names = [current.Location,current.Circuit?.ShortName].map(normalize).filter(Boolean);
+  const candidates = names.flatMap(name=>[name,aliases[name]]);
+  const course = (await circuits).features.find(feature=>feature.geometry?.type==="LineString" &&
+   [feature.properties.location,feature.properties.name].some(name=>candidates.includes(normalize(name))));
+  if (meeting!==current || get("map3DPanel").hidden) return;
+  if (!course) {
+   map3D?.hide();
+   get("map3DViewport").hidden = true;
+   status.textContent = "Trazado 3D no disponible para este circuito.";
+   return;
+  }
+  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=4").then(module=>module.createMap3D(get)).catch(error=>{
+   map3DLoad=undefined;
+   throw error;
+  });
+  map3D = await map3DLoad;
+  if (meeting!==current || get("map3DPanel").hidden) return;
+  get("map3DViewport").hidden = false;
+  map3D.setContext({name:current.Location ?? current.Circuit?.ShortName,id:course.properties.id,points:course.geometry.coordinates});
+  displayedMeeting = current;
+  map3D.show();
+ } catch {
+  if (meeting===current) status.textContent = "No se pudo abrir el mapa 3D.";
+ }
 }
 
 async function refresh() {
@@ -154,6 +208,21 @@ async function refresh() {
  }
 }
 
+get("map3DButton").onclick = () => {
+ if (!get("map3DPanel").hidden) {
+  get("map3DPanel").scrollIntoView({block:"nearest"});
+  return;
+ }
+ get("map3DPanel").hidden = false;
+ get("map3DButton").setAttribute("aria-expanded","true");
+ void showCircuit();
+};
+get("map3DClose").onclick = () => {
+ get("map3DPanel").hidden = true;
+ get("map3DButton").setAttribute("aria-expanded","false");
+ map3D?.hide();
+ get("map3DButton").focus();
+};
 get("refresh").onclick = refresh;
 if (lastSnapshot) render(lastSnapshot,false);
 void refresh();

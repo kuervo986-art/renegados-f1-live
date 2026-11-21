@@ -23,11 +23,24 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 #fia article.fia-white .flag{color:#e9f0ff}
 #fia article.fia-black .flag{color:#c0c7d3}
 #fia article.fia-checkered .flag{color:#e4e8f1}
-</style></head><body>
+#map3DButton{border-color:#8b5368}
+#map3DPanel{margin:0 0 12px}#map3DPanel[hidden]{display:none}
+.map3d-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px}
+.map3d-toolbar label{font-size:13px}.map3d-toolbar button{padding:7px 10px;font-size:13px}
+#map3DViewport{height:clamp(275px,51vh,580px);position:relative;background:#0a1221;overflow:hidden}
+#map3DViewport canvas{display:block;width:100%;height:100%}
+#map3DTime{flex:1;min-width:120px}#map3DClock{min-width:108px;font-variant-numeric:tabular-nums;font-size:12px}
+#map3DEnvironment{margin:0;padding:4px 12px}#map3DStatus{margin:0;padding:8px 12px;color:#b8c9e1;font-size:13px}
+
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}
+</script></head><body>
 <header><div><h1>🏁 RENEGADOS <b>RACING LIVE</b></h1><small>MONITOR DE CLASIFICACIÓN · Q1 / Q2 / Q3</small></div><nav aria-label="Navegación"><a href="./">Inicio</a> · <a href="./monitor.html?v=53">🏁 Volver al monitor de carrera</a></nav></header>
 <main>
 <div class="toolbar">
 <button id="refresh">Actualizar ahora</button>
+<button id="map3DButton" type="button" aria-controls="map3DPanel" aria-expanded="false">Abrir mapa 3D</button>
 <div class="phases" role="group" aria-label="Rondas de clasificación">
 <div class="phase" id="phase1"><strong>Q1</strong><span id="info1">Pendiente</span></div>
 <div class="phase" id="phase2"><strong>Q2</strong><span id="info2">Pendiente</span></div>
@@ -36,9 +49,30 @@ h1{font-size:21px;margin:0;letter-spacing:.07em}h1 b{color:#f14b63}a{color:#ffc0
 <span class="status" id="status" role="status">Esperando datos…</span>
 </div>
 <p id="phaseStatus">La fase y las eliminaciones solo se indicarán cuando el proveedor permita identificarlas.</p>
+<section id="map3DPanel" class="panel" aria-labelledby="map3DTitle" hidden>
+<h2 id="map3DTitle">Circuito en 3D</h2>
+<div class="map3d-toolbar">
+<button id="map3DReplay" type="button" hidden disabled>Repetir con datos reales</button>
+<button id="map3DDemo" type="button">Probar demostración</button>
+<button id="map3DCenter" type="button" aria-pressed="true">Cámara general</button>
+<button id="map3DChase" type="button" aria-pressed="false" disabled>Seguir coche</button>
+<label>Piloto <select id="map3DDriver"><option value="">Vista general</option></select></label>
+<button id="map3DClose" type="button">Cerrar 3D</button>
+</div>
+<p id="map3DStatus" role="status">Preparando el circuito…</p>
+<div id="map3DViewport" aria-label="Vista tridimensional del circuito"></div>
+<p id="map3DEnvironment" class="note" hidden>Carril de boxes en azul · Edificios con alturas aproximadas · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap</a> · <a href="./las-vegas-entorno.osm.json">Datos del entorno (ODbL)</a></p>
+<div class="map3d-toolbar">
+<button id="map3DPlay" type="button" disabled>Reproducir</button>
+<label>Velocidad <select id="map3DSpeed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+<input id="map3DTime" type="range" min="0" max="1" step="0.1" value="0" aria-label="Tiempo de la repetición" disabled>
+<output id="map3DClock">00:00 / 00:00</output>
+</div>
+</section>
 <div class="layout">
 <section class="panel"><h2>⏱️ CLASIFICACIÓN · MEJORES VUELTAS</h2><div class="scroll"><table><thead><tr><th>POS.</th><th>PILOTO</th><th>EQUIPO</th><th>Q1</th><th>Q2</th><th>Q3</th><th>DIF. DE RONDA</th><th>NEUM.</th><th>S1</th><th>S2</th><th>S3</th><th>ESTADO</th></tr></thead><tbody id="timing"><tr><td colspan="12">Conectando con el cronometraje…</td></tr></tbody></table></div><p class="note">La diferencia se calcula con la mejor vuelta de la ronda. S1–S3 muestran los últimos sectores recibidos.</p></section>
 <section class="panel fia-panel"><h2>📢 DIRECCIÓN DE CARRERA · FIA</h2><div id="fia"><p class="note">Sin avisos verificados.</p></div></section></div>
 </main><footer>RENEGADOS RACING LIVE · Monitor de clasificación experimental · Datos de fuente comunitaria · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
 <script src="./f1-es.js?v=1"></script>
-<script src="./clasificacion.js?v=1"></script></body></html>
+<script src="./marcas-circuitos.js?v=1"></script>
+<script src="./clasificacion.js?v=2"></script></body></html>

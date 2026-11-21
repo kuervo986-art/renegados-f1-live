@@ -2,6 +2,15 @@ import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const DEMO_COLORS = [0xff5268,0x66e2d5,0xff963d,0x799dff,0x5dc87d,0xcc94ff];
+// Las Vegas 2026: posiciones aproximadas al encajar el plano de la FIA en el trazado.
+// Cada número comienza en el panel correspondiente y termina en el siguiente.
+const vegasPanels = [.974,.010,.050,.094,.161,.208,.260,.284,.301,.327,.381,.414,.439,.486,.551,.612,.687,.796,.842,.894,.938];
+const vegasTiming = [.980469,1.246,1.526,1.980469];
+const timingColors = [0x5074bb,0x347e85,0x835bac];
+const flagPaint = {
+ YELLOW:[0xffd336,"Amarilla"],"DOUBLE YELLOW":[0xffd336,"Doble amarilla"],
+ RED:[0xff5268,"Roja"],BLUE:[0x5eb5ff,"Azul"],WHITE:[0xf3f6fa,"Blanca"]
+};
 const clock = seconds => {
  const whole = Math.max(0,Math.floor(seconds));
  return String(Math.floor(whole/60)).padStart(2,"0")+":"+String(whole%60).padStart(2,"0");
@@ -25,16 +34,18 @@ function buildTrack(points) {
  return new THREE.CatmullRomCurve3(path,true,"centripetal");
 }
 
-function roadGeometry(curve,width,height) {
- const count = 800;
- const points = curve.getSpacedPoints(count);
+function roadGeometry(curve,width,height,start=0,end=1) {
+ const count = Math.ceil((end-start)*800);
+ const pointAt = distance=>curve.getPointAt((distance+1)%1);
  const vertices = [];
  const indices = [];
  for (let i=0;i<=count;i++) {
-  const direction = points[(i+1)%count].clone().sub(points[(i+count-1)%count]);
+  const distance=start+(end-start)*i/count;
+  const center=pointAt(distance);
+  const direction = pointAt(distance+.00125).sub(pointAt(distance-.00125));
   const side = new THREE.Vector3(direction.z,0,-direction.x).normalize().multiplyScalar(width/2);
   for (const sign of [-1,1]) {
-   const point = points[i].clone().addScaledVector(side,sign);
+   const point = center.clone().addScaledVector(side,sign);
    vertices.push(point.x,point.y+height,point.z);
   }
   if (i<count) indices.push(2*i,2*i+1,2*i+2,2*i+1,2*i+3,2*i+2);
@@ -222,6 +233,7 @@ function canvasRenderer(track,fleet,environment) {
 
    const labels=[],faces=[];
    for (const mesh of track.children) {
+    if (!mesh.visible) continue;
     if (mesh.isSprite) {
      labels.push([project(0,0,0,mesh,camera),mesh.material.map.image]);
      continue;
@@ -234,7 +246,7 @@ function canvasRenderer(track,fleet,environment) {
      ctx.fillStyle=mesh.material.color.getStyle(); ctx.fill();
      continue;
     }
-    if (attr.count<48) continue;
+    if (attr.count<48 && !mesh.userData.trackColor) continue;
     if(camera.userData.chase) {
      ctx.fillStyle=mesh.material.color.getStyle();
      ctx.beginPath();
@@ -330,6 +342,9 @@ export function createMap3D(el,historical) {
  let fallback, vegasData;
  const chaseButton=el("map3DChase"), centerButton=el("map3DCenter");
  const environmentNote=el("map3DEnvironment");
+ const flagsNote=el("map3DFlags");
+ const flagStrips=new Map();
+ let raceFlags={};
  chaseButton.disabled=true;
 
  function setChase(active) {
@@ -358,15 +373,63 @@ export function createMap3D(el,historical) {
  new ResizeObserver(resize).observe(view);
  center();
 
+ function updateFlags() {
+  if (!flagsNote) return;
+  const current = raceFlags.track;
+  for (const [number,strip] of flagStrips) {
+   const flag = number==="track" ? current : raceFlags[number];
+   const paint = flagPaint[flag];
+   strip.visible = Boolean(paint) && (number==="track" || !flagPaint[current]);
+   if (paint) strip.material.color.setHex(paint[0]);
+  }
+  const active = Object.entries(raceFlags).flatMap(([number,flag])=>{
+   if (number==="track") {
+    const text=flagPaint[flag]?.[1] ?? (flag==="CHEQUERED" ? "A cuadros" : null);
+    return text ? [text+" en toda la pista"] : [];
+   }
+   const paint=flagPaint[flag];
+   return flagStrips.has(Number(number)) && paint ? [paint[1]+" · zona "+number] : [];
+  });
+  flagsNote.textContent = active.join(" · ");
+  flagsNote.hidden = active.length===0;
+ }
+
+ function addVegasSectors() {
+  const marker = (start,end,width,height,color) => {
+   const mesh=new THREE.Mesh(roadGeometry(curve,width,height,start,end),
+    new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide}));
+   mesh.userData.trackColor=true;
+   track.add(mesh);
+   return mesh;
+  };
+  timingColors.forEach((color,index)=>{
+   const start=vegasTiming[index],end=vegasTiming[index+1];
+   marker(start,end,12,.3,color);
+   const point=curve.getPointAt(((start+end)/2)%1);
+   const label=textSprite("S"+(index+1));
+   label.position.copy(point);
+   label.position.y+=14;
+   track.add(label);
+  });
+  vegasPanels.forEach((start,index)=>{
+   const next=vegasPanels[(index+1)%vegasPanels.length];
+   flagStrips.set(index+1,marker(start,next<start?next+1:next,20,.65,0xffd336));
+  });
+  flagStrips.set("track",marker(0,1,20,.65,0xffd336));
+ }
+
  function setTrack(points,id,lap=false) {
   disposeGroup(track);
   disposeGroup(environment);
+  flagStrips.clear();
   environmentNote.hidden=true;
   curve=buildTrack(points);
   for (const [width,height,color] of [[28,0,0x546277],[20,.22,0x293749]]) {
    const material=new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.95});
    track.add(new THREE.Mesh(roadGeometry(curve,width,height),material));
   }
+  if (flagsNote && id==="us-2023") addVegasSectors();
+  updateFlags();
   const marks=marcasCircuito(points.map(point=>[point.x,-point.z]),id,lap);
   function paint(mark,outline,color) {
    const [[x,y],[a,b],[c,d]]=mark;
@@ -586,6 +649,10 @@ export function createMap3D(el,historical) {
  timeline.oninput=()=>{time=Number(timeline.value); syncTime();};
 
  return {
+  setRaceFlags(flags) {
+   raceFlags=flags;
+   updateFlags();
+  },
   setContext(nextCircuit,nextArchived) {
    const key=nextArchived?.session.session_key??"";
    const changed=previousContext!==key;

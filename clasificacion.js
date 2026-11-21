@@ -21,6 +21,7 @@ const flagNames = {green:"Bandera verde",yellow:"Bandera amarilla",red:"Bandera 
 let busy = false;
 let lastSnapshot;
 let meeting, displayedMeeting, circuits, map3DLoad, map3D;
+let trackFlags = {};
 const snapshotKey = "renegados-clasificacion-ultima-v1";
 try {
  const saved = JSON.parse(sessionStorage.getItem(snapshotKey) ?? "null");
@@ -54,12 +55,15 @@ function sessionStart(session) {
  return timestamp(String(session.StartDate ?? "")+offset);
 }
 
-function renderFia(events,session) {
+function renderFia(events,session,online) {
  const start = sessionStart(session);
- get("fia").innerHTML = Object.values(events ?? {})
+ const messages = Object.values(events ?? {})
   .filter(event=>timestamp(event.Utc ?? event.timestamp)>=start-15*60*1000)
-  .sort((a,b)=>timestamp(b.Utc ?? b.timestamp)-timestamp(a.Utc ?? a.timestamp))
-  .slice(0,60).map(event=>{
+  .sort((a,b)=>timestamp(a.Utc ?? a.timestamp)-timestamp(b.Utc ?? b.timestamp));
+ trackFlags = online && !/^(?:inactive|finali[sz]ed|ended)$/i.test(session.SessionStatus)
+  ? flagsBySector(messages) : {};
+ map3D?.setRaceFlags(trackFlags);
+ get("fia").innerHTML = messages.slice(-60).reverse().map(event=>{
    const tone = fiaTone(event);
    return '<article class="fia-'+tone+'"><time>'+esc(timeFormat.format(timestamp(event.Utc ?? event.timestamp)))+'</time>'+
     '<div class="flag">'+esc(flagNames[tone] ?? "Dirección de carrera")+'</div>'+
@@ -67,7 +71,41 @@ function renderFia(events,session) {
   }).join("") || '<p class="note">Sin avisos de esta sesión.</p>';
 }
 
-function render({data,events,receivedAt},online) {
+function flagsBySector(messages) {
+ const flags = {};
+ for (const event of messages) {
+  if (event.Category!=="Flag") continue;
+  const scope = event.Scope;
+  const key = scope==="Track" ? "track" : scope==="Sector" && Number(event.Sector)>0 ? Number(event.Sector) : null;
+  if (key===null) continue;
+  const flag = String(event.Flag).toUpperCase();
+  if (flag==="CLEAR" || flag==="GREEN") {
+   if (key==="track") {
+    for (const active of Object.keys(flags)) delete flags[active];
+   } else delete flags[key];
+  } else if (key!=="track" || ["YELLOW","DOUBLE YELLOW","RED","CHEQUERED"].includes(flag)) {
+   flags[key] = flag;
+  }
+ }
+ return flags;
+}
+
+function bestSectorTimes(data,previous={}) {
+ const result = {...previous};
+ for (const driver of Object.values(data.Lines ?? {})) {
+  const id = driver?.RacingNumber;
+  if (!/^\d+$/.test(id ?? "")) continue;
+  result[id] = [0,1,2].map(index=>{
+   const sector = driver.Sectors?.[index];
+   const candidates = [previous[id]?.[index],sector?.Value,sector?.PreviousValue]
+    .map(Number).filter(value=>Number.isFinite(value) && value>0);
+   return candidates.length ? Math.min(...candidates) : null;
+  });
+ }
+ return result;
+}
+
+function render({data,events,receivedAt,bestSectors},online) {
  const session = data.Session;
  if (session.Meeting && (!meeting || meeting.Key!==session.Meeting.Key || meeting.Location!==session.Meeting.Location)) {
   meeting = session.Meeting;
@@ -75,12 +113,14 @@ function render({data,events,receivedAt},online) {
  }
  const status = String(session.SessionStatus ?? "").toLowerCase();
  const pending = !status || status==="inactive";
+ const sectorTimes = pending ? {} : bestSectors ?? bestSectorTimes(data);
  const lines = Object.values(data.Lines ?? {}).filter(driver=>/^\d+$/.test(driver?.RacingNumber ?? ""));
  const rows = lines.map(driver=>{
   const times = [0,1,2].map(index=>pending ? null : lap(driver.BestLapTimes?.[index] ?? driver.QualifyingTimes?.["Q"+(index+1)]));
   return {driver,times,position:pending ? null : Number(driver.Position)||null};
  }).sort((a,b)=>(a.position ?? Infinity)-(b.position ?? Infinity));
  const leaders = [0,1,2].map(index=>Math.min(...rows.flatMap(row=>row.times[index] ? [seconds(row.times[index])] : [])));
+ const sectorLeaders = [0,1,2].map(index=>Math.min(...rows.map(row=>sectorTimes[row.driver.RacingNumber]?.[index] ?? Infinity)));
  const timedPhase = leaders.findLastIndex(Number.isFinite)+1;
  const explicitPhase = [session.QualifyingPart,session.Part,session.QualifyingSession,session.Segment]
   .map(value=>String(value ?? "").match(/^(?:S?Q)?([123])$/i)?.[1]).find(Boolean);
@@ -117,15 +157,18 @@ function render({data,events,receivedAt},online) {
   const state = confirmed ? "Eliminado en Q"+eliminated : danger ? "En zona de eliminación" : "—";
   const color = /^[a-f\d]{6}$/i.test(driver.TeamColour ?? "") ? "#"+driver.TeamColour : "#8294b1";
   const tyreColor = !pending ? tyreColors[compound] : null;
+  const sectors = sectorTimes[driver.RacingNumber] ?? [null,null,null];
   const cells = [position,driver.Tla ?? driver.BroadcastName ?? driver.RacingNumber,driver.TeamName,
    ...times,gap===null ? null : gap===0 ? "Líder" : "+"+gap.toFixed(3),!pending ? tyreNames[compound] : null,
-   ...[0,1,2].map(index=>!pending ? driver.Sectors?.[index]?.Value || null : null),state];
+   ...sectors.map(value=>value?.toFixed(3)),state];
   return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
-   cells.map((value,index)=>index===7 && tyreColor
-    ? '<td style="color:'+tyreColor+'">'+esc(value)+'</td>'
-    : '<td>'+esc(value)+'</td>').join("")+'</tr>';
+   cells.map((value,index)=>{
+    if (index===7 && tyreColor) return '<td style="color:'+tyreColor+'">'+esc(value)+'</td>';
+    const best = index>=8 && index<=10 && sectors[index-8]===sectorLeaders[index-8];
+    return '<td'+(best?' class="best-sector" title="Mejor tiempo del sector"':'')+'>'+esc(value)+'</td>';
+   }).join("")+'</tr>';
  }).join("") || '<tr><td colspan="12">Esperando la lista de pilotos.</td></tr>';
- renderFia(events,session);
+ renderFia(events,session,online);
 }
 
 async function showCircuit() {
@@ -158,7 +201,7 @@ async function showCircuit() {
    status.textContent = "Trazado 3D no disponible para este circuito.";
    return;
   }
-  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=4").then(module=>module.createMap3D(get)).catch(error=>{
+  map3DLoad ??= import("./mapa-entrenamientos-3d.js?v=5").then(module=>module.createMap3D(get)).catch(error=>{
    map3DLoad=undefined;
    throw error;
   });
@@ -166,6 +209,7 @@ async function showCircuit() {
   if (meeting!==current || get("map3DPanel").hidden) return;
   get("map3DViewport").hidden = false;
   map3D.setContext({name:current.Location ?? current.Circuit?.ShortName,id:course.properties.id,points:course.geometry.coordinates});
+  map3D.setRaceFlags(trackFlags);
   displayedMeeting = current;
   map3D.show();
  } catch {
@@ -189,12 +233,12 @@ async function refresh() {
   }
   const receivedAt = Date.now();
   const prior = lastSnapshot?.data.Session.Key===data.Session.Key ? lastSnapshot : null;
-  const snapshot = {data,receivedAt,events:prior?.events};
+  const snapshot = {data,receivedAt,events:prior?.events,bestSectors:bestSectorTimes(data,prior?.bestSectors)};
   render(snapshot,true);
   try {
    const fia = await read(base,"race-control");
    snapshot.events = fia.RaceControl ?? fia.Messages;
-   renderFia(snapshot.events,data.Session);
+   renderFia(snapshot.events,data.Session,true);
   } catch {}
   if (String(data.Session.SessionStatus).toLowerCase()!=="inactive") {
    lastSnapshot = snapshot;

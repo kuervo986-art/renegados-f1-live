@@ -190,8 +190,10 @@ function render({data,events,receivedAt,bestSectors,clockMessages},online) {
   const danger = online && !complete && !confirmed && enoughTimes && position>cutoff;
   const time = times[phase-1];
   const gap = time ? seconds(time)-leaders[phase-1] : null;
-  const stints = Object.values(driver.Stints ?? {});
-  const compound = (stints.at(-1)?.Compound ?? driver.Compound ?? "").toUpperCase();
+  const stint = Object.values(driver.Stints ?? {}).at(-1);
+  const compound = (stint?.Compound ?? driver.Compound ?? "").toUpperCase();
+  const newTyre = String(stint?.New ?? "").trim().toLowerCase();
+  const tyreState = newTyre==="true" ? "Nuevo" : newTyre==="false" ? "Usado" : "";
   const elimination = confirmed ? "Eliminado en Q"+eliminated : danger ? "En zona de eliminación" : null;
   const pit = pending || complete ? null : driver.PitOut===true ? "Saliendo de boxes" : driver.InPit===true ? "En boxes" : null;
   const state = [pit,elimination].filter(Boolean).join(" · ") || "—";
@@ -203,7 +205,10 @@ function render({data,events,receivedAt,bestSectors,clockMessages},online) {
    ...sectors.map(value=>value?.toFixed(3)),state];
   return '<tr data-team-color="1" style="--team-color:'+color+'" class="'+(danger||confirmed?"danger":"")+'">'+
    cells.map((value,index)=>{
-    if (index===7 && tyreColor) return '<td style="color:'+tyreColor+'">'+esc(value)+'</td>';
+    if (index===7 && tyreColor) {
+     const badge = tyreState ? '<span class="tyre-state" title="Estado del juego al montarlo">'+tyreState+'</span>' : "";
+     return '<td style="color:'+tyreColor+'">'+esc(value)+badge+'</td>';
+    }
     if (index===11 && pit) return '<td><span class="pit-state">'+esc(pit)+'</span>'+
      (elimination ? ' · '+esc(elimination) : '')+'</td>';
     const best = index>=8 && index<=10 && sectors[index-8]===sectorLeaders[index-8];

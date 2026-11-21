@@ -68,7 +68,7 @@ function renderFia(events,session,online) {
    const tone = fiaTone(event);
    return '<article class="fia-'+tone+'"><time>'+esc(timeFormat.format(timestamp(event.Utc ?? event.timestamp)))+'</time>'+
     '<div class="flag">'+esc(flagNames[tone] ?? "Dirección de carrera")+'</div>'+
-    esc(translate(event.Message ?? event.message ?? "Aviso"))+'</article>';
+    mensajeFiaHtml(event.Message ?? event.message ?? "Aviso",esc)+'</article>';
   }).join("") || '<p class="note">Sin avisos de esta sesión.</p>';
 }
 

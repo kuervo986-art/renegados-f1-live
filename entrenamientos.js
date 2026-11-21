@@ -126,7 +126,7 @@ function renderEvents(events, rows) {
   const time = timestamp(eventDate(event));
   return '<article class="fia-'+fiaTone(event)+'"><time>'+esc(Number.isFinite(time)?timeFormat.format(time):"")+
    '</time><div class="flag">'+esc(translateCategory(event.Category??event.category))+
-   '</div>'+esc(translate(eventText(event)))+'</article>';
+   '</div>'+mensajeFiaHtml(eventText(event),esc)+'</article>';
  }).join("") : '<p class="note">'+(events ? "Sin avisos FIA publicados." : "Avisos FIA no disponibles.")+"</p>";
 
  const counted = new Map();

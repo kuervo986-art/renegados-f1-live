@@ -36,11 +36,14 @@ const push=s.match(/^PUSH CARS TO FRONT IN ORDER:\s*(.+)$/i);
 if(push)return "Colocar los coches al frente en este orden: "+push[1];
 const resume=s.match(/^RESUMPTION ORDER:\s*(.+)$/i);
 if(resume)return "Orden de reanudación: "+resume[1];
-const postRace=s.match(/^INCIDENT\s+INVOLVING\s+CAR\s+(\d+)\s+\(([^)]+)\)\s+WILL\s+BE\s+INVESTIGATED\s+AFTER\s+THE\s+RACE\s*[-–—]\s*(.+)$/i);
-if(postRace){
- const reason=postRace[3].split(/\s*[-–—]\s*/).map(x=>x.trim()).filter(Boolean);
- const why=reason.map(translateReason).join("; ");
- return "Incidente del coche "+postRace[1]+" ("+postRace[2]+"): será investigado después de la carrera. Motivo: "+why+".";
+const postSession=s.match(/^INCIDENT\s+INVOLVING\s+(CAR|CARS)\s+(.+?)\s+WILL\s+BE\s+INVESTIGATED\s+AFTER\s+THE\s+(RACE|SESSION|QUALIFYING)\s*[-–—]\s*(.+)$/i);
+if(postSession){
+ const [,type,carList,session,reason]=postSession;
+ const when={RACE:"la carrera",SESSION:"la sesión",QUALIFYING:"la clasificación"}[session.toUpperCase()];
+ const cars=carList.replace(/\s+AND\s+/gi," y ");
+ const translatedReason=translateReason(reason);
+ return "Incidente "+(type.toUpperCase()==="CAR"?"del coche ":"entre los coches ")+cars+
+  ": se investigará después de "+when+". Motivo: "+translatedReason+".";
 }
 const reviewed=s.match(/^INCIDENT INVOLVING CAR\s+(\d+)\s+\(([^)]+)\)\s+REVIEWED\s+NO FURTHER INVESTIGATION\s*-\s*LEAVING PIT EXIT ON RED LIGHT\s*(\([^)]*\))?$/i);
 if(reviewed)return "Incidente del coche "+reviewed[1]+" ("+reviewed[2]+") revisado: no habrá más investigación por salir de boxes con el semáforo rojo"+(reviewed[3]?" "+reviewed[3]:"");
@@ -177,4 +180,90 @@ function nombreGranPremio(nombre) {
  const match=value.match(/^(.+) Grand Prix$/i);
  if(!match)return value;
  return "Gran Premio de "+(lugares[match[1]]||match[1]);
+}
+
+// Los avisos sin una traducción específica se traducen en el navegador.
+const fiaTranslations = new Map();
+const fiaTranslationQueue = [];
+let fiaWorker, fiaActive, fiaTimeout, fiaNextId=0, fiaRetryAt=0;
+
+function emitFiaTranslation(entry) {
+ for (const label of document.querySelectorAll('[data-fia-translation="'+entry.id+'"]')) {
+  label.textContent = entry.text;
+  if (entry.ready) label.title = "Traducción automática";
+ }
+}
+
+function finishFiaTranslation(entry, translation) {
+ if (fiaActive!==entry) return;
+ clearTimeout(fiaTimeout);
+ fiaActive=undefined;
+ entry.queued=false;
+ entry.ready=Boolean(translation);
+ entry.text=translation || "Traducción pendiente. Se reintentará automáticamente.";
+ if (!entry.ready) {
+  entry.failures=(entry.failures ?? 0)+1;
+  if (entry.failures<3) {
+   entry.retryAt=Date.now()+30000;
+   setTimeout(()=>{
+    if (fiaTranslations.get(entry.original)===entry && mountFiaTranslation(entry)) sendNextFiaTranslation();
+   },30000);
+  } else {
+   entry.retryAt=Infinity;
+   entry.text="Traducción pendiente.";
+  }
+ }
+ emitFiaTranslation(entry);
+ sendNextFiaTranslation();
+}
+
+function sendNextFiaTranslation() {
+ if (fiaActive || Date.now()<fiaRetryAt) return;
+ const entry=fiaTranslationQueue.shift();
+ if (!entry) return;
+ fiaActive=entry;
+ const unavailable = () => {
+  fiaRetryAt=Date.now()+30000;
+  fiaWorker?.terminate();
+  fiaWorker=undefined;
+  finishFiaTranslation(entry,"");
+  setTimeout(sendNextFiaTranslation,30000);
+ };
+ try {
+  fiaWorker ??= new Worker(new URL("./traductor-fia-worker.js?v=1",document.baseURI),{type:"module"});
+  fiaWorker.onerror=unavailable;
+  fiaWorker.onmessage=({data})=>{
+   if (data.id!==entry.id) return;
+   if (data.unavailable) unavailable();
+   else finishFiaTranslation(entry,data.translation);
+  };
+  fiaTimeout=setTimeout(unavailable,120000);
+  fiaWorker.postMessage({id:entry.id,original:entry.original});
+ } catch { unavailable(); }
+}
+
+function mountFiaTranslation(entry) {
+ if (entry.ready || entry.queued || Date.now()<entry.retryAt) return false;
+ entry.queued=true;
+ fiaTranslationQueue.push(entry);
+ return true;
+}
+
+function mensajeFiaHtml(message,escapeHtml) {
+ const original=String(message ?? "").trim();
+ const translated=translate(original);
+ if (!/Aviso original de la FIA|motivo original:/i.test(translated)) return escapeHtml(translated);
+ let entry=fiaTranslations.get(original);
+ if (!entry) {
+  entry={id:++fiaNextId,original,text:"Traduciendo aviso de la FIA…",retryAt:0};
+  fiaTranslations.set(original,entry);
+  if (fiaTranslations.size>256) {
+   const oldest=[...fiaTranslations].find(([,item])=>!item.queued && item!==entry);
+   if (oldest) fiaTranslations.delete(oldest[0]);
+  }
+ }
+ if (entry.ready) return '<span title="Traducción automática">'+escapeHtml(entry.text)+'</span>';
+ mountFiaTranslation(entry);
+ sendNextFiaTranslation();
+ return '<span data-fia-translation="'+entry.id+'">'+escapeHtml(entry.text)+'</span>';
 }

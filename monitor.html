@@ -159,7 +159,7 @@ tbody tr:hover{background:#30445b70}
 
 <section class="panel" style="margin-top:12px"><h2>🎙️ RADIOS DE EQUIPO · AUDIO ORIGINAL</h2><p class="info">Comunicaciones del receptor. La traducción al español aún no está disponible: no se inventan transcripciones. Audio sujeto a disponibilidad y permisos de reproducción.</p><div id="radios"><div class="info">Selecciona En directo para consultar las radios.</div></div></section>
 </main><footer>RENEGADOS RACING LIVE · Datos históricos OpenF1 · Proyecto independiente · La disponibilidad del directo no está garantizada. · Creado por Kuervo · Proyecto independiente, no oficial ni afiliado a Formula 1 o la FIA.</footer>
-<script src="./f1-es.js?v=3"></script>
+<script src="./f1-es.js?v=4"></script>
 <script src="./marcas-circuitos.js?v=1"></script>
 <script>
 "use strict";
@@ -172,7 +172,7 @@ function renderData(d){let drivers=d.drivers||[],laps=d.laps||[],stints=d.stints
 el("timing").innerHTML=rows.map((x,i)=>'<tr><td>'+esc(x.r?.position??(i+1))+'</td><td><b>'+esc(x.driver.name_acronym)+'</b></td><td>'+esc(x.driver.team_name)+'</td><td>'+(isRace?(x.r?.gap_to_leader===0?"Líder":(x.r?.gap_to_leader??"—")):((typeof x.best?.lap_duration==="number"&&typeof leader==="number")?"+"+(x.best.lap_duration-leader).toFixed(3):"—"))+'</td><td>—</td><td>'+t(x.best?.lap_duration)+'</td><td>'+esc(x.best?.duration_sector_1)+'</td><td>'+esc(x.best?.duration_sector_2)+'</td><td>'+esc(x.best?.duration_sector_3)+'</td><td>'+esc(({SOFT:"Blando",MEDIUM:"Medio",HARD:"Duro",INTERMEDIATE:"Intermedio",WET:"Lluvia"})[x.tyre?.compound]||"—")+'</td></tr>').join("");
 el("sectors").innerHTML=rows.map((x,i)=>"<tr><td>"+esc(x.r?.position??i+1)+"</td><td>"+esc(x.driver.name_acronym)+"</td>"+[1,2,3].map(j=>"<td>"+esc(x.best?.["duration_sector_"+j]??"—")+"</td>").join("")+"</tr>").join("");
 let errors=d.errores_parciales||{},events=d.race_control||[];
-el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+esc(translate(e.message))+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
+el("fia").innerHTML=errors.race_control?'<div class="info">No se pudieron recuperar los avisos FIA: '+esc(errors.race_control)+'</div>':events.length?events.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(e=>'<article class="fia-'+fiaTone(e)+'"><time>'+esc(e.date)+'</time><div class="flag">'+esc(label(e))+'</div><div>'+mensajeFiaHtml(e.message,esc)+'</div></article>').join(""):'<div class="info">No hay mensajes FIA disponibles en esta respuesta.</div>';
 el("state").textContent="Histórico recibido: "+rows.length+" pilotos · "+events.length+" avisos FIA. No es una carrera en directo.";
 }
 function draw(points, circuitId) {
@@ -527,7 +527,7 @@ async function refreshLive(){
  const events=Array.isArray(payload)?payload:(payload&&typeof payload==="object"?Object.values(payload).filter(m=>m&&typeof m==="object") : []);
  const valid=events.filter(m=>m&&typeof m==="object"&&(m.Message||m.message||m.text||m.Category||m.Flag));
  renderTrackLimits(valid,fr.status==="fulfilled",ds);
- el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article class="fia-'+fiaTone(m)+'"><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+esc(translate(m.Message||m.message||m.text||m.Flag||"Aviso"))+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
+ el("fia").innerHTML=fr.status!=="fulfilled"?'<div class="info">No se pudieron recuperar los mensajes FIA del receptor. La consulta ha fallado.</div>':valid.length?valid.slice(-120).reverse().map(m=>'<article class="fia-'+fiaTone(m)+'"><time>'+esc(m.Utc||m.timestamp||m.time||m.utc||"")+'</time><div class="flag">'+esc(translateCategory(m.Category||m.category))+'</div><div>'+mensajeFiaHtml(m.Message||m.message||m.text||m.Flag||"Aviso",esc)+'</div></article>').join(""):'<div class="info">La conexión funciona, pero todavía no hay avisos FIA recibidos.</div>';
  lastLiveSuccessful=Date.now();
  }catch(error){stopSimulatedPilots();clearCircuitWeather("Meteorología no verificada");el("timing").innerHTML='<tr><td colspan="9">Conexión no verificada. Datos anteriores ocultos.</td></tr>';el("fia").innerHTML='<div class="info">Sin avisos FIA verificados.</div>';el("radios").innerHTML='<div class="info">Sin radios verificadas.</div>';renderTrackLimits([],false);el("state").textContent="● RECEPTOR NO VERIFICADO";el("liveMeta").textContent="No se han podido validar los datos: "+error.message;}
  finally{liveBusy=false}

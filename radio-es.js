@@ -52,17 +52,24 @@ function waveFile(audio, sampleRate) {
 
 async function transcribe(clip,signal) {
  const url=api+"?"+new URLSearchParams({clip});
- const deadline=Date.now()+100000;
+ const deadline=Date.now()+120000;
  while(Date.now()<deadline) {
   signal.throwIfAborted();
-  const response=await fetch(url,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)]),cache:"no-store"});
-  if(response.status===202) {
-   await new Promise(resolve=>setTimeout(resolve,2000));
-   continue;
+  const timeout=AbortSignal.timeout(Math.min(40000,deadline-Date.now()));
+  const response=await fetch(url,{signal:AbortSignal.any([signal,timeout]),cache:"no-store"}).catch(error=>{
+   signal.throwIfAborted();
+   if(error.name!=="TimeoutError" && !(error instanceof TypeError)) throw error;
+  });
+  if(response?.status===202) {
+   status.textContent="Transcribiendo esta radio…";
+  } else if(!response || response.status===429 || response.status>=500) {
+   status.textContent="Esperando al traductor de radios…";
+  } else {
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok || !data.texto) throw Error(data.error||"No se pudo transcribir esta radio.");
+   return data.texto;
   }
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok || !data.texto) throw Error(data.error||"La traducción de radios aún no está disponible en el receptor.");
-  return data.texto;
+  await new Promise(resolve=>setTimeout(resolve,2000));
  }
  throw Error("La transcripción está tardando. Pulsa «Escuchar en español» para reintentar.");
 }
@@ -125,9 +132,7 @@ document.getElementById("radios").addEventListener("click",async event=>{
   const original=await transcribe(clip,request.signal);
   if(id===sequence) createSpanishAudio(original,id);
  } catch(error) {
-  if(id===sequence) status.textContent=error.name==="TimeoutError"
-   ?"El receptor tardó en responder. Vuelve a pulsar «Escuchar en español»."
-   :error.message;
+  if(id===sequence) status.textContent=error.message;
  }
 });
 window.addEventListener("pagehide",reset);

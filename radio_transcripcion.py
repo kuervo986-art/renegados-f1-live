@@ -20,9 +20,9 @@ RADIO_PATH = re.compile(
     r"[A-Za-z0-9_-]{1,100}\.mp3", re.ASCII
 )
 MODEL_URL = ("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
-             "ggml-base.en-q5_1.bin?download=true")
-MODEL_HASH = "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"
-_MODEL_PATH = Path(tempfile.gettempdir()) / "renegados-radio-base.en-q5_1.bin"
+             "ggml-tiny.en-q5_1.bin?download=true")
+MODEL_HASH = "c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b"
+_MODEL_PATH = Path(tempfile.gettempdir()) / "renegados-radio-tiny.en-q5_1.bin"
 _MAX_AUDIO = 2 * 1024 * 1024
 _POOL = ThreadPoolExecutor(max_workers=1, thread_name_prefix="radio")
 _LOCK = Lock()
@@ -102,12 +102,13 @@ def _transcribe(clip):
         pcm *= min(4, .65 / peak)
 
     if _MODEL is None:
-        _MODEL = Model(_model_file(), n_threads=min(3, os.cpu_count() or 1),
+        _MODEL = Model(_model_file(), n_threads=1,
                        redirect_whispercpp_logs_to=None,
                        print_progress=False, print_realtime=False, print_timestamps=False,
                        initial_prompt="Formula 1 team radio. Copy that. Aquaplaning. Box this lap.")
     segments = _MODEL.transcribe(pcm, language="en")
     text = " ".join(segment.text.strip() for segment in segments).strip()
+    text = re.sub(r"\[[^\]]*\]|\([^)]*\)", "", text).strip()
     if not re.search(r"[a-z]{2}", text, re.IGNORECASE):
         raise RadioError("No se han podido distinguir las palabras de esta radio.")
     text = re.sub(r"\bice ring\b", "ice rink", text, flags=re.IGNORECASE)

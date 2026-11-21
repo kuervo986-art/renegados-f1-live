@@ -1,6 +1,8 @@
 "use strict";
 
 const receiver = "https://renegados-f1-live.onrender.com/api/alternativa/";
+const liveReceiver = "https://renegados-f1-receptor.onrender.com/api/";
+const liveRoutes = {status:"status",timing:"leaderboard","race-control":"race-control",weather:"weather","team-radio":"radio"};
 const archive = "https://api.openf1.org/v1/";
 const el = id => document.getElementById(id);
 const esc = value => String(value ?? "—").replace(/[&<>"']/g, char =>
@@ -33,9 +35,31 @@ function savePractice(snapshot) {
 }
 
 async function json(url) {
- const response = await fetch(url, { signal:AbortSignal.timeout(12000), cache:url.startsWith(receiver)?"no-store":"default" });
+ const live = url.startsWith(liveReceiver)||url.startsWith(receiver);
+ const response = await fetch(url, { signal:AbortSignal.timeout(live?35000:12000), cache:live?"no-store":"default" });
  if (!response.ok) throw Object.assign(new Error("HTTP "+response.status), { status:response.status });
  return response.json();
+}
+
+async function liveSession() {
+ for (const base of [liveReceiver,receiver]) {
+  const direct = base===liveReceiver;
+  const get = async topic => {
+   const data = await json(base+(direct?liveRoutes[topic]:topic));
+   return direct?data:data.vigente?data.datos:null;
+  };
+  try {
+   const [status,data] = await Promise.all(["status","timing"].map(get));
+   const receivedAt = Date.now();
+   const age = (receivedAt-timestamp(status?.lastMessageAt))/1000;
+   if (status?.isConnected===true && status.status==="CONNECTED" && age>=-20 && age<90 && data) {
+    return {data,receivedAt,get};
+   }
+  } catch {
+   // Try the existing proxy if the direct request fails.
+  }
+ }
+ throw Error("Sin datos recientes");
 }
 
 let nextArchiveRequest = 0;
@@ -133,6 +157,7 @@ function renderWeather(weather) {
  el("weather").textContent = values.join(" · ") || "Sin datos meteorológicos.";
 }
 
+let renderedRadios;
 function renderRadios(entries, rows, sessionPath) {
  const names = new Map(rows.map(row => [String(row.id),row.name]));
  const links = (entries??[]).map(item => {
@@ -147,12 +172,16 @@ function renderRadios(entries, rows, sessionPath) {
   if (url.origin!=="https://livetiming.formula1.com" || !/^\/static\/20\d\d\/.+\.mp3$/i.test(url.pathname)) return "";
   const driver = item.driver_number ?? item.RacingNumber;
   const time = timestamp(eventDate(item));
-  return '<p>'+esc(names.get(String(driver))??(driver?"Coche "+driver:"Radio"))+
+  return '<p>'+esc(names.get(String(driver))??item.Tla??(driver?"Coche "+driver:"Radio"))+
    (Number.isFinite(time)?" · "+timeFormat.format(time):"")+
    ' · <a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Escuchar audio original</a>'+
    ' · <button type="button" class="radio-action" data-radio-url="'+esc(url.href)+'">Escuchar en español</button></p>';
  }).filter(Boolean);
- el("radios").innerHTML = links.slice(-30).reverse().join("") || (entries?"Sin grabaciones disponibles.":"Radios no disponibles.");
+ const content = links.slice(-30).reverse().join("") || (entries?"Sin grabaciones disponibles.":"Radios no disponibles.");
+ if (content!==renderedRadios) {
+  el("radios").innerHTML = content;
+  renderedRadios = content;
+ }
 }
 
 const normalize = value => String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -256,16 +285,17 @@ async function refreshLive() {
  if (state.mode!=="live" || state.liveRevision===revision) return;
  state.liveRevision = revision;
  try {
-  const [status,timing] = await Promise.all(["status","timing"].map(topic=>json(receiver+topic)));
+  const {data,receivedAt,get} = await liveSession();
   if (state.revision!==revision) return;
-  const received = timestamp(timing.recibido_utc);
-  const age = ((Number.isFinite(received)?received:Date.now())-timestamp(status.datos?.lastMessageAt))/1000;
-  if (!status.vigente||!timing.vigente||status.datos?.isConnected!==true||!(age>=-20&&age<90)) throw Error("Datos antiguos");
-  const data = timing.datos??{};
   const session = data.Session??data.SessionInfo??{};
   const part = practicePart(session.Name??session.SessionName) ||
    (session.Type==="Practice" && [1,2,3].includes(number(session.Number)) ? number(session.Number) : 0);
   if (!part) {
+   if (lastPractice) {
+    renderSnapshot(lastPractice,revision,false);
+    el("phaseStatus").textContent = "Mostrando los últimos entrenamientos. Esperando la próxima sesión.";
+    return;
+   }
    clearPanels("Esperando la próxima sesión de entrenamientos libres.");
    el("status").textContent = "Sesión del receptor · "+nombreSesion(session.Name??session.Type);
    el("phaseStatus").textContent = "Puedes consultar entrenamientos anteriores en Histórico.";
@@ -279,21 +309,29 @@ async function refreshLive() {
    return;
   }
   if (!prior) clearPanels("Esperando el cronometraje de la sesión.");
-  const snapshot = {...prior,id,part,session,rows,receivedAt:Number.isFinite(received)?received:Date.now()};
+  const snapshot = {...prior,id,part,session,rows,receivedAt};
   savePractice(snapshot);
   renderSnapshot(snapshot,revision,true);
-  const [fia,weather,radios] = await Promise.allSettled(["race-control","weather","team-radio"].map(topic=>json(receiver+topic)));
-  if (state.revision!==revision) return;
-  const get = result => result.value?.vigente ? result.value.datos : null;
-  const fiaData = get(fia);
-  const radioData = get(radios);
-  if (fiaData) snapshot.fia = list(fiaData.RaceControl??fiaData.Messages??fiaData);
-  if (get(weather)) snapshot.weather = get(weather);
-  if (radioData) snapshot.radios = list(radioData.Captures??radioData);
-  savePractice(snapshot);
-  renderEvents(snapshot.fia,rows);
-  renderWeather(snapshot.weather);
-  renderRadios(snapshot.radios,rows,session.Path);
+  const update = async (topic,apply) => {
+   const extra = await get(topic);
+   if (!extra || state.revision!==revision) return;
+   apply(extra);
+   savePractice(snapshot);
+  };
+  await Promise.allSettled([
+   update("race-control",extra=>{
+    snapshot.fia = list(extra.RaceControl??extra.Messages??extra);
+    renderEvents(snapshot.fia,rows);
+   }),
+   update("weather",extra=>{
+    snapshot.weather = extra;
+    renderWeather(extra);
+   }),
+   update("team-radio",extra=>{
+    snapshot.radios = list(extra.Captures??extra);
+    renderRadios(snapshot.radios,rows,session.Path);
+   })
+  ]);
  } catch {
   if (state.revision!==revision) return;
   if (lastPractice) renderSnapshot(lastPractice,revision,false);

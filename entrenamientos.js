@@ -158,24 +158,37 @@ function renderWeather(weather) {
 }
 
 let renderedRadios;
-function renderRadios(entries, rows, sessionPath) {
+function radioSessionStart(session) {
+ const start = session?.StartDate;
+ const offset = String(session?.GmtOffset ?? "").match(/^([+-]?)(\d\d:\d\d)(?::\d\d)?$/);
+ if (!start || !offset || /(?:Z|[+-]\d\d:\d\d)$/i.test(start)) return timestamp(start);
+ return timestamp(start+(offset[1]||"+")+offset[2]);
+}
+
+function renderRadios(entries, rows, session) {
  const names = new Map(rows.map(row => [String(row.id),row.name]));
+ const start = radioSessionStart(session);
  const links = (entries??[]).map(item => {
   if (!item || typeof item!=="object") return "";
   const raw = item.recording_url ?? item.Path ?? item.Url;
-  if (!raw) return "";
+  if (typeof raw!=="string" || !raw) return "";
+  const time = timestamp(eventDate(item));
   let url;
   try {
-   const path = raw.startsWith("TeamRadio/") && sessionPath ? sessionPath+raw : raw;
+   let path = raw;
+   if (raw.startsWith("TeamRadio/")) {
+    if (!session?.Path || !Number.isFinite(start) || !Number.isFinite(time) || time<start-15*60*1000) return "";
+    path = session.Path.replace(/\/?$/,"/")+raw;
+   }
    url = new URL(path,"https://livetiming.formula1.com/static/");
   } catch { return ""; }
   if (url.origin!=="https://livetiming.formula1.com" || !/^\/static\/20\d\d\/.+\.mp3$/i.test(url.pathname)) return "";
   const driver = item.driver_number ?? item.RacingNumber;
-  const time = timestamp(eventDate(item));
-  return '<p>'+esc(names.get(String(driver))??item.Tla??(driver?"Coche "+driver:"Radio"))+
+  const pilot = names.get(String(driver))??item.Tla??(driver?"Coche "+driver:"Radio");
+  return '<p>'+esc(pilot)+
    (Number.isFinite(time)?" · "+timeFormat.format(time):"")+
    ' · <a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Escuchar audio original</a>'+
-   ' · <button type="button" class="radio-action" data-radio-url="'+esc(url.href)+'">Escuchar en español</button></p>';
+   ' · <button type="button" class="radio-action" aria-controls="radio-es-panel" data-radio-pilot="'+esc(pilot)+'" data-radio-url="'+esc(url.href)+'">Escuchar en español</button></p>';
  }).filter(Boolean);
  const content = links.slice(-30).reverse().join("") || (entries?"Sin grabaciones disponibles.":"Radios no disponibles.");
  if (content!==renderedRadios) {
@@ -276,7 +289,7 @@ function renderSnapshot(snapshot, revision, online) {
  renderTiming(rows);
  renderEvents(fia,rows);
  renderWeather(weather);
- renderRadios(radios,rows,session.Path);
+ renderRadios(radios,rows,session);
  void renderMap(meeting.Location,meeting.Circuit?.ShortName,revision,id);
 }
 
@@ -329,7 +342,7 @@ async function refreshLive() {
    }),
    update("team-radio",extra=>{
     snapshot.radios = list(extra.Captures??extra);
-    renderRadios(snapshot.radios,rows,session.Path);
+    renderRadios(snapshot.radios,rows,session);
    })
   ]);
  } catch {

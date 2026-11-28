@@ -13,8 +13,20 @@ const text=document.getElementById("radio-es-text");
 const player=document.getElementById("radio-es-player");
 
 let worker, request, playbackUrl, timer, sequence=0;
+let selectedUrl, busy=false;
+
+function playbackStatus(message,loading=false) {
+ busy=loading;
+ status.textContent=message;
+ const button=[...document.querySelectorAll("button[data-radio-url]")].find(button=>button.dataset.radioUrl===selectedUrl);
+ if (button) {
+  button.textContent=loading?"Preparando en español…":"Escuchar en español";
+  button.setAttribute("aria-busy",String(loading));
+ }
+}
 
 function reset() {
+ if (selectedUrl) playbackStatus("");
  request?.abort();
  request=new AbortController();
  ++sequence;
@@ -61,9 +73,9 @@ async function transcribe(clip,signal) {
    if(error.name!=="TimeoutError" && !(error instanceof TypeError)) throw error;
   });
   if(response?.status===202) {
-   status.textContent="Transcribiendo esta radio…";
+   playbackStatus("Transcribiendo esta radio…",true);
   } else if(!response || response.status===429 || response.status>=500) {
-   status.textContent="Esperando al traductor de radios…";
+   playbackStatus("Esperando al traductor de radios…",true);
   } else {
    const data=await response.json().catch(()=>({}));
    if(!response.ok || !data.texto) throw Error(data.error||"No se pudo transcribir esta radio.");
@@ -75,24 +87,24 @@ async function transcribe(clip,signal) {
 }
 
 function createSpanishAudio(original,id,reviewed) {
- status.textContent=reviewed?"Generando el audio en español…":"Preparando la traducción y la voz en español…";
+ playbackStatus(reviewed?"Generando el audio en español…":"Preparando la traducción y la voz en español…",true);
  worker=new Worker(new URL("./radio-es-worker.js?v=3",import.meta.url),{type:"module"});
  timer=setTimeout(()=>{
   if(id!==sequence) return;
   worker?.terminate();
   worker=undefined;
-  status.textContent="La voz en español tardó demasiado. Pulsa «Escuchar en español» para reintentar.";
+  playbackStatus("La voz en español tardó demasiado. Pulsa «Escuchar en español» para reintentar.");
  },150000);
  worker.onmessage=async({data})=>{
   if(id!==sequence) return;
   if(data.message) {
-   status.textContent=data.message;
+   playbackStatus(data.message,true);
    return;
   }
   clearTimeout(timer);
   if(data.translation) text.textContent=data.translation;
   if(data.error) {
-   status.textContent=data.error;
+   playbackStatus(data.error);
    return;
   }
   playbackUrl=URL.createObjectURL(waveFile(data.audio,data.sampleRate));
@@ -100,15 +112,15 @@ function createSpanishAudio(original,id,reviewed) {
   player.hidden=false;
   try {
    await player.play();
-   if(id===sequence) status.textContent=reviewed?"Reproduciendo la radio en español.":"Reproduciendo la traducción automática.";
+   if(id===sequence) playbackStatus(reviewed?"Reproduciendo la radio en español.":"Reproduciendo la traducción automática.");
   } catch {
-   if(id===sequence) status.textContent="La radio está lista. Pulsa Reproducir en el control de audio.";
+   if(id===sequence) playbackStatus("La radio está lista. Pulsa Reproducir en el control de audio.");
   }
  };
  worker.onerror=()=>{
   if(id!==sequence)return;
   clearTimeout(timer);
-  status.textContent="No se pudo iniciar la voz en español. Pulsa el botón para reintentar.";
+  playbackStatus("No se pudo iniciar la voz en español. Pulsa el botón para reintentar.");
  };
  worker.postMessage({original,reviewed});
 }
@@ -118,21 +130,24 @@ document.getElementById("radios").addEventListener("click",async event=>{
  if(!button) return;
  const url=new URL(button.dataset.radioUrl);
  if(url.origin!=="https://livetiming.formula1.com" || !url.pathname.startsWith("/static/")) return;
- reset();
- const id=sequence;
- panel.hidden=false;
- const clip=url.pathname.slice("/static/".length);
- const reviewed=revisadas[clip];
- if(reviewed) {
-  createSpanishAudio(null,id,reviewed);
+ if (busy && selectedUrl===url.href) {
+  panel.scrollIntoView({block:"nearest"});
   return;
  }
- status.textContent="Transcribiendo esta radio…";
+ reset();
+ selectedUrl=url.href;
+ const id=sequence;
+ panel.hidden=false;
+ panel.querySelector("strong").textContent="Radio en español · "+(button.dataset.radioPilot || "Piloto");
+ panel.scrollIntoView({block:"nearest"});
+ const clip=url.pathname.slice("/static/".length);
+ const reviewed=revisadas[clip];
+ playbackStatus("Preparando esta radio…",true);
  try {
-  const original=await transcribe(clip,request.signal);
-  if(id===sequence) createSpanishAudio(original,id);
+  const original=reviewed ? null : await transcribe(clip,request.signal);
+  if(id===sequence) createSpanishAudio(original,id,reviewed);
  } catch(error) {
-  if(id===sequence) status.textContent=error.message;
+  if(id===sequence) playbackStatus(error.message || "No se pudo preparar esta radio.");
  }
 });
 window.addEventListener("pagehide",reset);
